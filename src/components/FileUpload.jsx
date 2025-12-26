@@ -38,15 +38,12 @@ const FileUpload = ({ onFileUpload }) => {
     const validExtensions = ['.xlsx', '.xls', '.csv'];
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     
-    console.log('Processing file:', file.name, 'Extension:', fileExtension);
-    
     if (!validExtensions.includes(fileExtension)) {
       alert('Please upload a valid Excel or CSV file');
       return;
     }
 
     setFileName(file.name);
-    console.log('Calling onFileUpload with file:', file.name);
     onFileUpload(file);
   };
 

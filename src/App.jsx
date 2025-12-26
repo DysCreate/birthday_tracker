@@ -59,7 +59,6 @@ function App() {
         }
       }
       
-      console.warn(`Invalid date format: "${dateValue}". Expected DD-MM-YYYY format.`);
       return null;
     }
 
@@ -67,8 +66,6 @@ function App() {
   };
 
   const handleFileUpload = async (file) => {
-    console.log('handleFileUpload called with:', file);
-    
     if (!file) {
       setContacts([]);
       setFilteredContacts([]);
@@ -87,16 +84,12 @@ function App() {
         // Read without headers first to check the data
         const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
         
-        console.log('Raw Excel data (first 3 rows):', jsonData.slice(0, 3));
-        
         // Check if first row looks like headers or data
         const firstRow = jsonData[0];
         const hasHeaders = firstRow && firstRow.length >= 2 && 
                           (String(firstRow[0]).toLowerCase().includes('name') || 
                            String(firstRow[1]).toLowerCase().includes('birth') ||
                            String(firstRow[1]).toLowerCase().includes('date'));
-        
-        console.log('Has headers:', hasHeaders);
         
         // Start from row 1 if headers exist, otherwise row 0
         const startRow = hasHeaders ? 1 : 0;
@@ -105,7 +98,6 @@ function App() {
           .slice(startRow)
           .map((row, index) => {
             if (!row || row.length < 2) {
-              console.log(`Skipping row ${index} - insufficient data`);
               return null;
             }
             
@@ -113,17 +105,13 @@ function App() {
             const dateValue = row[1];
             
             if (!name || !dateValue) {
-              console.log(`Skipping row ${index} - missing name or date`);
               return null;
             }
 
             const birthDate = parseDate(dateValue);
             if (!birthDate) {
-              console.log(`Skipping row ${index} - could not parse date:`, dateValue);
               return null;
             }
-
-            console.log(`Parsed: ${name} -> ${birthDate.toDateString()}`);
 
             return {
               name: String(name).trim(),
@@ -132,7 +120,6 @@ function App() {
           })
           .filter(contact => contact !== null);
 
-        console.log('Parsed contacts:', parsedContacts);
         setContacts(parsedContacts);
         
         // Automatically select today's date to show birthdays
@@ -145,13 +132,6 @@ function App() {
                  contact.birthDate.getDate() === today.getDate();
         });
         setFilteredContacts(todayBirthdays);
-        
-        console.log(`Loaded ${parsedContacts.length} contacts`);
-        console.log(`Selected date: ${today.toDateString()}`);
-        console.log(`Today's birthdays:`, todayBirthdays);
-        if (todayBirthdays.length > 0) {
-          console.log(`Found ${todayBirthdays.length} birthdays today!`);
-        }
       } catch (error) {
         console.error('Error parsing file:', error);
         alert('Error reading file. Please make sure it contains "Name" and "BirthDate" columns.');
@@ -162,22 +142,14 @@ function App() {
   };
 
   const handleDateSelect = (date) => {
-    console.log('Date selected:', date.toDateString());
-    console.log('Total contacts:', contacts.length);
-    
     setSelectedDate(date);
     
     // Filter contacts by month and day (ignore year)
     const filtered = contacts.filter(contact => {
-      const matches = contact.birthDate.getMonth() === date.getMonth() &&
-                      contact.birthDate.getDate() === date.getDate();
-      if (matches) {
-        console.log(`Match found: ${contact.name} - ${contact.birthDate.toDateString()}`);
-      }
-      return matches;
+      return contact.birthDate.getMonth() === date.getMonth() &&
+             contact.birthDate.getDate() === date.getDate();
     });
 
-    console.log(`Found ${filtered.length} birthdays on ${date.toDateString()}`);
     setFilteredContacts(filtered);
   };
 
@@ -192,14 +164,14 @@ function App() {
           className="text-center mb-12"
         >
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Sparkles className="w-10 h-10 text-primary-600" />
+            
             <h1 className="text-5xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
               Birthday Tracker
             </h1>
-            <Sparkles className="w-10 h-10 text-primary-600" />
+      
           </div>
           <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-            Upload your contacts and never miss a birthday again
+          Never miss a birthday again
           </p>
         </motion.div>
 
