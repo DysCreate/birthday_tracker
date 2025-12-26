@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import FileUpload from './components/FileUpload';
@@ -10,6 +10,16 @@ function App() {
   const [contacts, setContacts] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [filteredContacts, setFilteredContacts] = useState([]);
+  const datePickerRef = useRef(null);
+
+  // Scroll to date picker when contacts are loaded
+  useEffect(() => {
+    if (contacts.length > 0 && datePickerRef.current) {
+      setTimeout(() => {
+        datePickerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, [contacts]);
 
   const parseDate = (dateValue) => {
     if (!dateValue) return null;
@@ -26,31 +36,39 @@ function App() {
       return isNaN(date.getTime()) ? null : date;
     }
 
-    // If it's a string, try various formats
+    // If it's a string, ONLY accept DD-MM-YYYY format
     if (typeof dateValue === 'string') {
-      // Try ISO format (YYYY-MM-DD)
-      let date = new Date(dateValue);
-      if (!isNaN(date.getTime())) return date;
-
-      // Try MM/DD/YYYY format
-      const parts = dateValue.split('/');
-      if (parts.length === 3) {
-        date = new Date(parts[2], parts[0] - 1, parts[1]);
-        if (!isNaN(date.getTime())) return date;
+      const trimmed = dateValue.trim();
+      
+      // Match DD-MM-YYYY format (with - or / separators)
+      const ddmmyyyyPattern = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/;
+      const match = trimmed.match(ddmmyyyyPattern);
+      
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10);
+        const year = parseInt(match[3], 10);
+        
+        // Validate the date components
+        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          const date = new Date(year, month - 1, day);
+          // Double-check the date is valid (handles invalid dates like Feb 31)
+          if (date.getDate() === day && date.getMonth() === month - 1) {
+            return date;
+          }
+        }
       }
-
-      // Try DD-MM-YYYY format
-      const dashParts = dateValue.split('-');
-      if (dashParts.length === 3) {
-        date = new Date(dashParts[2], dashParts[1] - 1, dashParts[0]);
-        if (!isNaN(date.getTime())) return date;
-      }
+      
+      console.warn(`Invalid date format: "${dateValue}". Expected DD-MM-YYYY format.`);
+      return null;
     }
 
     return null;
   };
 
   const handleFileUpload = async (file) => {
+    console.log('handleFileUpload called with:', file);
+    
     if (!file) {
       setContacts([]);
       setFilteredContacts([]);
@@ -65,32 +83,56 @@ function App() {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-
+        
+        // Read without headers first to check the data
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+        
+        console.log('Raw Excel data (first 3 rows):', jsonData.slice(0, 3));
+        
+        // Check if first row looks like headers or data
+        const firstRow = jsonData[0];
+        const hasHeaders = firstRow && firstRow.length >= 2 && 
+                          (String(firstRow[0]).toLowerCase().includes('name') || 
+                           String(firstRow[1]).toLowerCase().includes('birth') ||
+                           String(firstRow[1]).toLowerCase().includes('date'));
+        
+        console.log('Has headers:', hasHeaders);
+        
+        // Start from row 1 if headers exist, otherwise row 0
+        const startRow = hasHeaders ? 1 : 0;
+        
         const parsedContacts = jsonData
-          .map((row) => {
-            // Try to find name and birthdate fields (case-insensitive)
-            const nameField = Object.keys(row).find(
-              key => key.toLowerCase().includes('name')
-            );
-            const dateField = Object.keys(row).find(
-              key => key.toLowerCase().includes('birth') || 
-                     key.toLowerCase().includes('date') ||
-                     key.toLowerCase().includes('dob')
-            );
+          .slice(startRow)
+          .map((row, index) => {
+            if (!row || row.length < 2) {
+              console.log(`Skipping row ${index} - insufficient data`);
+              return null;
+            }
+            
+            const name = row[0];
+            const dateValue = row[1];
+            
+            if (!name || !dateValue) {
+              console.log(`Skipping row ${index} - missing name or date`);
+              return null;
+            }
 
-            if (!nameField || !dateField) return null;
+            const birthDate = parseDate(dateValue);
+            if (!birthDate) {
+              console.log(`Skipping row ${index} - could not parse date:`, dateValue);
+              return null;
+            }
 
-            const birthDate = parseDate(row[dateField]);
-            if (!birthDate) return null;
+            console.log(`Parsed: ${name} -> ${birthDate.toDateString()}`);
 
             return {
-              name: row[nameField],
+              name: String(name).trim(),
               birthDate: birthDate
             };
           })
           .filter(contact => contact !== null);
 
+        console.log('Parsed contacts:', parsedContacts);
         setContacts(parsedContacts);
         
         // Automatically select today's date to show birthdays
@@ -105,6 +147,8 @@ function App() {
         setFilteredContacts(todayBirthdays);
         
         console.log(`Loaded ${parsedContacts.length} contacts`);
+        console.log(`Selected date: ${today.toDateString()}`);
+        console.log(`Today's birthdays:`, todayBirthdays);
         if (todayBirthdays.length > 0) {
           console.log(`Found ${todayBirthdays.length} birthdays today!`);
         }
@@ -118,14 +162,22 @@ function App() {
   };
 
   const handleDateSelect = (date) => {
+    console.log('Date selected:', date.toDateString());
+    console.log('Total contacts:', contacts.length);
+    
     setSelectedDate(date);
     
     // Filter contacts by month and day (ignore year)
     const filtered = contacts.filter(contact => {
-      return contact.birthDate.getMonth() === date.getMonth() &&
-             contact.birthDate.getDate() === date.getDate();
+      const matches = contact.birthDate.getMonth() === date.getMonth() &&
+                      contact.birthDate.getDate() === date.getDate();
+      if (matches) {
+        console.log(`Match found: ${contact.name} - ${contact.birthDate.toDateString()}`);
+      }
+      return matches;
     });
 
+    console.log(`Found ${filtered.length} birthdays on ${date.toDateString()}`);
     setFilteredContacts(filtered);
   };
 
@@ -159,6 +211,7 @@ function App() {
         {/* Date Picker - Only show when contacts are loaded */}
         {contacts.length > 0 && (
           <motion.div
+            ref={datePickerRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}

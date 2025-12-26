@@ -59,7 +59,7 @@ const ContactList = ({ contacts, selectedDate }) => {
         </motion.div>
       )}
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         {contacts.length === 0 && selectedDate ? (
           <motion.div
             key="empty"
@@ -78,7 +78,7 @@ const ContactList = ({ contacts, selectedDate }) => {
           </motion.div>
         ) : contacts.length > 0 ? (
           <motion.div
-            key="list"
+            key={`list-${selectedDate?.toISOString()}`}
             variants={container}
             initial="hidden"
             animate="show"
