@@ -193,6 +193,7 @@ function App() {
               onDateSelect={handleDateSelect}
               selectedDate={selectedDate}
               autoOpen={true}
+              contacts={contacts}
             />
           </motion.div>
         )}

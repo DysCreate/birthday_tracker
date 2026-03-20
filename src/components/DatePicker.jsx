@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const DatePicker = ({ onDateSelect, selectedDate, autoOpen = false }) => {
+const DatePicker = ({ onDateSelect, selectedDate, autoOpen = false, contacts = [] }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isOpen, setIsOpen] = useState(false);
 
@@ -17,6 +17,23 @@ const DatePicker = ({ onDateSelect, selectedDate, autoOpen = false }) => {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+
+  // Build a Set of "month-day" strings that have birthdays for the current month
+  const birthdayDaysInMonth = useMemo(() => {
+    const month = currentMonth.getMonth();
+    const days = new Set();
+    contacts.forEach((contact) => {
+      if (contact.birthDate.getMonth() === month) {
+        days.add(contact.birthDate.getDate());
+      }
+    });
+    return days;
+  }, [contacts, currentMonth]);
+
+  const hasBirthday = (date) => {
+    if (!date) return false;
+    return birthdayDaysInMonth.has(date.getDate());
+  };
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -142,16 +159,25 @@ const DatePicker = ({ onDateSelect, selectedDate, autoOpen = false }) => {
                     onClick={() => handleDateClick(date)}
                     disabled={!date}
                     className={`
-                      aspect-square flex items-center justify-center rounded-lg text-sm font-medium
-                      transition-all duration-200
+                      aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium
+                      transition-all duration-200 relative
                       ${!date ? 'invisible' : ''}
                       ${isSelectedDate(date) 
                         ? 'bg-primary-600 text-white shadow-lg' 
-                        : 'hover:bg-slate-100 text-slate-700'
+                        : hasBirthday(date)
+                          ? 'hover:bg-emerald-50 text-slate-700'
+                          : 'hover:bg-slate-100 text-slate-700'
                       }
                     `}
                   >
-                    {date ? date.getDate() : ''}
+                    <span>{date ? date.getDate() : ''}</span>
+                    {date && hasBirthday(date) && (
+                      <span
+                        className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
+                          isSelectedDate(date) ? 'bg-white' : 'bg-emerald-500'
+                        }`}
+                      />
+                    )}
                   </motion.button>
                 ))}
               </div>
