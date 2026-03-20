@@ -2,15 +2,9 @@
 
 A modern, elegant React application for tracking and managing birthdays. Upload your contacts list and never miss a birthday again!
 
-## ✨ Features
+## 🔗 Live Demo
 
-- 📁 **Excel File Upload** - Support for .xlsx, .xls, and .csv files with drag-and-drop functionality
-- 📅 **Interactive Calendar** - Beautiful, minimalist date picker for browsing birthdays
-- 🎯 **Smart Filtering** - Automatically matches birthdays by month and day (year-independent)
-- 🎨 **Modern UI** - Apple-inspired design with smooth animations and glass-morphism effects
-- 📱 **Responsive Design** - Works seamlessly on desktop, tablet, and mobile devices
-- 🔒 **Privacy First** - All data processing happens locally in your browser
-- ⚡ **Fast & Smooth** - Built with Vite for lightning-fast performance
+[https://dob-track.netlify.app/](https://dob-track.netlify.app/)
 
 ## 🛠️ Tech Stack
 
