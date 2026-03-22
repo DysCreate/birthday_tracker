@@ -1,16 +1,47 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import FileUpload from './components/FileUpload';
 import DatePicker from './components/DatePicker';
 import ContactList from './components/ContactList';
-import { Sparkles } from 'lucide-react';
+import { Bell, BellOff, BellRing, Sparkles, Check, X } from 'lucide-react';
+import {
+  scheduleAllBirthdayNotifications,
+  cancelAllNotifications,
+  checkNotificationPermission,
+  saveContactsToStorage,
+  loadContactsFromStorage,
+  clearContactsFromStorage,
+} from './utils/notifications';
 
 function App() {
   const [contacts, setContacts] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [filteredContacts, setFilteredContacts] = useState([]);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState(null); // { scheduled, skipped, permissionDenied }
+  const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const datePickerRef = useRef(null);
+
+  // Load persisted contacts on app start
+  useEffect(() => {
+    const saved = loadContactsFromStorage();
+    if (saved && saved.length > 0) {
+      setContacts(saved);
+      const today = new Date();
+      setSelectedDate(today);
+      const todayBirthdays = saved.filter(contact =>
+        contact.birthDate.getMonth() === today.getMonth() &&
+        contact.birthDate.getDate() === today.getDate()
+      );
+      setFilteredContacts(todayBirthdays);
+    }
+
+    // Check if notifications are already permitted
+    checkNotificationPermission().then(granted => {
+      setNotificationsEnabled(granted);
+    });
+  }, []);
 
   // Scroll to date picker when contacts are loaded
   useEffect(() => {
@@ -65,17 +96,40 @@ function App() {
     return null;
   };
 
+  const handleEnableNotifications = async () => {
+    if (contacts.length === 0) return;
+
+    const result = await scheduleAllBirthdayNotifications(contacts);
+    setNotificationStatus(result);
+    setShowNotificationBanner(true);
+
+    if (!result.permissionDenied) {
+      setNotificationsEnabled(true);
+      // Auto-hide banner after 5 seconds
+      setTimeout(() => setShowNotificationBanner(false), 5000);
+    }
+  };
+
+  const handleDisableNotifications = async () => {
+    await cancelAllNotifications();
+    setNotificationsEnabled(false);
+    setNotificationStatus(null);
+    setShowNotificationBanner(false);
+  };
+
   const handleFileUpload = async (file) => {
     if (!file) {
       setContacts([]);
       setFilteredContacts([]);
       setSelectedDate(null);
+      clearContactsFromStorage();
+      setNotificationStatus(null);
       return;
     }
 
     const reader = new FileReader();
     
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -122,6 +176,9 @@ function App() {
 
         setContacts(parsedContacts);
         
+        // Save to localStorage for persistence
+        saveContactsToStorage(parsedContacts);
+
         // Automatically select today's date to show birthdays
         const today = new Date();
         setSelectedDate(today);
@@ -132,6 +189,16 @@ function App() {
                  contact.birthDate.getDate() === today.getDate();
         });
         setFilteredContacts(todayBirthdays);
+
+        // Auto-schedule notifications if permission is already granted
+        const hasPermission = await checkNotificationPermission();
+        if (hasPermission) {
+          const result = await scheduleAllBirthdayNotifications(parsedContacts);
+          setNotificationStatus(result);
+          setNotificationsEnabled(true);
+          setShowNotificationBanner(true);
+          setTimeout(() => setShowNotificationBanner(false), 5000);
+        }
       } catch (error) {
         console.error('Error parsing file:', error);
         alert('Error reading file. Please make sure it contains "Name" and "BirthDate" columns.');
@@ -175,10 +242,91 @@ function App() {
           </p>
         </motion.div>
 
+        {/* Notification Banner */}
+        <AnimatePresence>
+          {showNotificationBanner && notificationStatus && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              className="mb-6"
+            >
+              <div className={`rounded-2xl p-4 border flex items-center justify-between ${
+                notificationStatus.permissionDenied
+                  ? 'bg-red-50 border-red-200 text-red-800'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              }`}>
+                <div className="flex items-center gap-3">
+                  {notificationStatus.permissionDenied ? (
+                    <BellOff className="w-5 h-5 text-red-500" />
+                  ) : (
+                    <Check className="w-5 h-5 text-emerald-500" />
+                  )}
+                  <span className="text-sm font-medium">
+                    {notificationStatus.permissionDenied
+                      ? 'Notification permission denied. Please enable in your device settings.'
+                      : `🎉 ${notificationStatus.scheduled} birthday reminder${notificationStatus.scheduled !== 1 ? 's' : ''} scheduled! You'll be notified 1 day before each birthday at 9:00 AM.`
+                    }
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowNotificationBanner(false)}
+                  className="text-current opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* File Upload */}
         <div className="mb-8">
           <FileUpload onFileUpload={handleFileUpload} />
         </div>
+
+        {/* Notification Controls - Only show when contacts are loaded */}
+        {contacts.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-8"
+          >
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg p-5 border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl ${notificationsEnabled ? 'bg-indigo-100' : 'bg-slate-100'}`}>
+                    {notificationsEnabled ? (
+                      <BellRing className="w-5 h-5 text-indigo-600" />
+                    ) : (
+                      <Bell className="w-5 h-5 text-slate-400" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-700 text-sm">Birthday Reminders</h3>
+                    <p className="text-xs text-slate-500">
+                      {notificationsEnabled
+                        ? 'You\'ll receive notifications 1 day before each birthday'
+                        : 'Get notified 1 day before upcoming birthdays'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={notificationsEnabled ? handleDisableNotifications : handleEnableNotifications}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+                    notificationsEnabled
+                      ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  {notificationsEnabled ? 'Disable' : 'Enable Reminders'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Date Picker - Only show when contacts are loaded */}
         {contacts.length > 0 && (
@@ -235,6 +383,10 @@ function App() {
               <li className="flex items-start">
                 <span className="font-semibold text-primary-600 mr-3">3.</span>
                 <span>Select a date from the calendar to view birthdays</span>
+              </li>
+              <li className="flex items-start">
+                <span className="font-semibold text-primary-600 mr-3">4.</span>
+                <span>Enable birthday reminders to get notified 1 day before each birthday 🔔</span>
               </li>
             </ol>
           </motion.div>
