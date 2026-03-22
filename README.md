@@ -10,6 +10,7 @@ A modern, elegant React application for tracking and managing birthdays. Upload 
 
 - **React 19** - Modern UI library
 - **Vite** - Next-generation frontend tooling
+- **Capacitor** - Native wrapper for Android WebView
 - **Tailwind CSS v4** - Utility-first styling
 - **Framer Motion** - Smooth animations and transitions
 - **XLSX** - Excel file parsing
@@ -76,6 +77,43 @@ npm run build
 ```
 
 The production-ready files will be in the `dist/` directory.
+
+## 📱 Android WebView Functionality
+
+This project includes Capacitor Android support, so the web app runs inside a native Android WebView.
+
+### Prerequisites
+
+- Android Studio (latest stable)
+- Android SDK + emulator/device setup
+- Java 17 (recommended for modern Android builds)
+
+### Build and Sync Web Assets
+
+```bash
+npm run build
+npx cap sync android
+```
+
+### Open in Android Studio
+
+```bash
+npx cap open android
+```
+
+From Android Studio:
+
+1. Wait for Gradle sync to finish
+2. Select an emulator or connected device
+3. Click **Run** to launch the app in Android WebView
+
+### Optional: Live Reload on Android
+
+```bash
+npx cap run android -l --external
+```
+
+Use this for faster development while testing on an emulator or physical device.
 
 ## 🌐 Deployment
 
