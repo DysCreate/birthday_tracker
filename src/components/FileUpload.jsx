@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { Upload, FileSpreadsheet, X } from 'lucide-react';
 
 const FileUpload = ({ onFileUpload }) => {
@@ -20,7 +19,7 @@ const FileUpload = ({ onFileUpload }) => {
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
     if (file) {
       processFile(file);
@@ -34,12 +33,30 @@ const FileUpload = ({ onFileUpload }) => {
     }
   };
 
+  const VALID_MIME_TYPES = [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'text/csv',
+    'application/csv',
+  ];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
   const processFile = (file) => {
     const validExtensions = ['.xlsx', '.xls', '.csv'];
     const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-    
+
     if (!validExtensions.includes(fileExtension)) {
       alert('Please upload a valid Excel or CSV file');
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      alert('File is too large. Maximum size is 10MB.');
+      return;
+    }
+
+    if (file.type && !VALID_MIME_TYPES.includes(file.type)) {
+      alert('Invalid file type. Please upload an Excel or CSV file.');
       return;
     }
 
@@ -56,27 +73,17 @@ const FileUpload = ({ onFileUpload }) => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-2xl mx-auto"
-    >
+    <div className="w-full max-w-2xl mx-auto">
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => !fileName && fileInputRef.current?.click()}
         className={`
-          relative border-2 border-dashed rounded-2xl p-12 
-          transition-all duration-300 cursor-pointer
-          ${isDragging 
-            ? 'border-primary-500 bg-primary-50/50 scale-105' 
-            : fileName
-            ? 'border-green-400 bg-green-50/30'
-            : 'border-slate-300 bg-white/60 hover:border-primary-400 hover:bg-primary-50/30'
-          }
-          backdrop-blur-sm shadow-lg hover:shadow-xl
+          brutal-border brutal-shadow bg-surface p-12 cursor-pointer
+          transition-all duration-100
+          ${isDragging ? 'bg-accent-secondary translate-x-1 translate-y-1 shadow-none' : ''}
+          ${!isDragging && fileName ? 'bg-success' : ''}
         `}
       >
         <input
@@ -88,53 +95,48 @@ const FileUpload = ({ onFileUpload }) => {
         />
 
         {fileName ? (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="flex flex-col items-center space-y-4"
-          >
+          <div className="flex flex-col items-center space-y-4">
             <div className="relative">
-              <FileSpreadsheet className="w-16 h-16 text-green-500" />
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+              <FileSpreadsheet className="w-16 h-16 text-ink" />
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleClearFile();
                 }}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors shadow-lg"
+                className="brutal-button bg-accent-primary text-ink p-1 absolute -top-3 -right-3"
               >
                 <X className="w-4 h-4" />
-              </motion.button>
+              </button>
             </div>
             <div className="text-center">
-              <p className="text-slate-700 font-medium text-lg">{fileName}</p>
-              <p className="text-slate-500 text-sm mt-1">File uploaded successfully</p>
+              <p className="font-mono text-ink font-bold text-lg uppercase tracking-wide">{fileName}</p>
+              <div className="brutal-border-thin bg-bg px-3 py-1 mt-2 inline-block">
+                <p className="font-mono text-ink text-xs uppercase">File uploaded successfully</p>
+              </div>
             </div>
-          </motion.div>
+          </div>
         ) : (
           <div className="flex flex-col items-center space-y-4">
-            <motion.div
-              animate={isDragging ? { scale: 1.1 } : { scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-            >
-              <Upload className={`w-16 h-16 ${isDragging ? 'text-primary-500' : 'text-slate-400'}`} />
-            </motion.div>
+            <div className={`transition-transform duration-100 ${isDragging ? 'translate-x-1 translate-y-1' : ''}`}>
+              <Upload className={`w-16 h-16 text-ink`} />
+            </div>
             <div className="text-center">
-              <p className="text-slate-700 font-medium text-lg mb-2">
+              <p className="font-display text-ink text-xl uppercase tracking-tight">
                 {isDragging ? 'Drop your file here' : 'Upload Excel File'}
               </p>
-              <p className="text-slate-500 text-sm">
-                Drag and drop or click to select
-              </p>
-              <p className="text-slate-400 text-xs mt-2">
+              <div className="brutal-border-thin bg-accent-tertiary px-4 py-2 mt-3 inline-block">
+                <p className="font-mono text-ink text-sm uppercase tracking-wide font-bold">
+                  Drag & drop or click to select
+                </p>
+              </div>
+              <p className="font-mono text-ink text-xs uppercase tracking-wide mt-3">
                 Supports .xlsx, .xls, and .csv files
               </p>
             </div>
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };
 

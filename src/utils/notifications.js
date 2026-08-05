@@ -180,16 +180,36 @@ export function saveContactsToStorage(contacts) {
  * Load contacts from localStorage
  * @returns {Array<{name: string, birthDate: Date}>|null}
  */
+const MAX_STORED_CONTACTS = 5000;
+
 export function loadContactsFromStorage() {
   const data = localStorage.getItem('birthday_contacts');
   if (!data) return null;
 
   try {
     const parsed = JSON.parse(data);
-    return parsed.map(c => ({
-      name: c.name,
-      birthDate: new Date(c.birthDate),
-    }));
+    if (!Array.isArray(parsed)) return null;
+
+    const contacts = [];
+    for (const c of parsed) {
+      if (!c || typeof c.name !== 'string' || typeof c.birthDate !== 'string') {
+        continue;
+      }
+      const birthDate = new Date(c.birthDate);
+      if (isNaN(birthDate.getTime())) {
+        continue;
+      }
+      let name = c.name.trim();
+      if (name.length > 200) name = name.substring(0, 200);
+      name = name.split('').filter(n => {
+        const code = n.charCodeAt(0);
+        return code >= 0x20 || code === 0x09 || code === 0x0A || code === 0x0D;
+      }).join('');
+      if (!name) continue;
+      contacts.push({ name, birthDate });
+      if (contacts.length >= MAX_STORED_CONTACTS) break;
+    }
+    return contacts;
   } catch {
     return null;
   }
