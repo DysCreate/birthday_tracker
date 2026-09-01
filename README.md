@@ -1,27 +1,37 @@
-# 🎂 Birthday Tracker
+# Birthday Tracker
 
-A modern, elegant React application for tracking and managing birthdays. Upload your contacts list and never miss a birthday again!
+A bold, neobrutalist React application for tracking and managing birthdays. Upload your contacts from an Excel file, view birthdays on an interactive calendar, and never miss one again.
 
-## 🔗 Live Demo
+## Live Demo
 
 [https://dob-track.netlify.app/](https://dob-track.netlify.app/)
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **React 19** - Modern UI library
-- **Vite** - Next-generation frontend tooling
-- **Capacitor** - Native wrapper for Android WebView
-- **Tailwind CSS v4** - Utility-first styling
-- **Framer Motion** - Smooth animations and transitions
-- **XLSX** - Excel file parsing
-- **Lucide React** - Beautiful icon library
+- **Vite (Rolldown)** - Next-generation frontend tooling
+- **Capacitor 8** - Native Android wrapper with local notifications
+- **Tailwind CSS v4** - CSS-first utility styling with custom theme tokens
+- **Framer Motion** - Animation transitions (AnimatePresence)
+- **XLSX** - Excel and CSV file parsing
+- **date-fns** - Date utility library
+- **Lucide React** - Icon library
 
-## 📋 Prerequisites
+## Features
+
+- **Excel/CSV Upload** - Drag-and-drop or click to browse. Supports .xlsx, .xls, and .csv files up to 10 MB. Auto-detects headers and validates data.
+- **Interactive Calendar** - Custom date picker with month navigation. Birthday indicator dots highlight dates with upcoming birthdays.
+- **Birthday Reminders** - Native Android local notifications scheduled 1 day before each birthday at 9:00 AM. Enable/disable toggle with status banner.
+- **Local Persistence** - Contacts are saved to localStorage and survive app restarts (up to 5,000 contacts).
+- **Neobrutalist UI** - Bold borders, hard-offset shadows, slab typography, and a high-contrast color palette built on a custom design token system.
+- **Reduced Motion Support** - All animations and transitions are disabled when the user prefers reduced motion.
+
+## Prerequisites
 
 - Node.js (v18 or higher)
 - npm or yarn
 
-## 🚀 Installation
+## Installation
 
 1. Clone the repository:
 ```bash
@@ -41,7 +51,7 @@ npm run dev
 
 4. Open your browser and navigate to `http://localhost:5173`
 
-## 📝 Usage
+## Usage
 
 1. **Prepare Your Data**
    - Create an Excel file with two columns
@@ -54,11 +64,12 @@ npm run dev
    - The calendar will automatically open after upload
 
 3. **View Birthdays**
-   - The app automatically shows today's birthdays
+   - The app automatically shows today's birthdays on load
    - Click any date in the calendar to see birthdays on that date
+   - Dates with birthdays are marked with indicator dots
    - Navigate between months using the arrow buttons
 
-## 📊 Excel File Format
+## Excel File Format
 
 Your Excel file should have two columns:
 
@@ -68,9 +79,9 @@ Your Excel file should have two columns:
 | Jane Smith      | 22-07-1985         |
 | Mike Johnson    | 08-11-1992         |
 
-**Important:** Dates must be in **DD-MM-YYYY** format (e.g., 26-12-2025 or 26/12/2025)
+**Important:** Dates must be in **DD-MM-YYYY** or **DD/MM/YYYY** format. Excel serial number dates are also supported.
 
-## 🏗️ Build for Production
+## Build for Production
 
 ```bash
 npm run build
@@ -78,17 +89,17 @@ npm run build
 
 The production-ready files will be in the `dist/` directory.
 
-## 📱 Android WebView Functionality
+## Android
 
-This project includes Capacitor Android support, so the web app runs inside a native Android WebView.
+This project uses Capacitor to run as a native Android app with local notification support.
 
 ### Prerequisites
 
 - Android Studio (latest stable)
-- Android SDK + emulator/device setup
-- Java 17 (recommended for modern Android builds)
+- Android SDK (minSdk 24, compileSdk/targetSdk 36)
+- Java 21
 
-### Build and Sync Web Assets
+### Build and Sync
 
 ```bash
 npm run build
@@ -105,17 +116,15 @@ From Android Studio:
 
 1. Wait for Gradle sync to finish
 2. Select an emulator or connected device
-3. Click **Run** to launch the app in Android WebView
+3. Click **Run** to launch the app
 
-### Optional: Live Reload on Android
+### Live Reload on Android
 
 ```bash
 npx cap run android -l --external
 ```
 
-Use this for faster development while testing on an emulator or physical device.
-
-## 🌐 Deployment
+## Deployment
 
 ### Netlify
 
@@ -133,54 +142,77 @@ Use this for faster development while testing on an emulator or physical device.
 3. Framework preset: Vite
 4. Deploy!
 
-## 🎨 Customization
+## Customization
 
-### Colors
+### Design Tokens
 
-Edit `src/index.css` to change the color scheme:
+The neobrutalist theme is defined via CSS custom properties in `src/index.css` using Tailwind v4's `@theme` block:
 
 ```css
-body {
-  background: linear-gradient(to bottom right, #your-colors-here);
+@theme {
+  --color-bg: #FFF9EC;
+  --color-ink: #111111;
+  --color-surface: #FFFFFF;
+  --color-accent-primary: #FF5C5C;
+  --color-accent-secondary: #4C6EF5;
+  --color-accent-tertiary: #FFD23F;
+  --color-success: #2FBF71;
+  --color-danger: #E63946;
 }
 ```
 
-### Animations
+### Fonts
 
-Modify animation settings in `src/components/ContactList.jsx` and other components using Framer Motion variants.
+- **Archivo Black** - Display headlines (all-uppercase)
+- **Space Grotesk** - Body text
+- **JetBrains Mono** - Labels and numbers
 
-## 📁 Project Structure
+### Brutalist Utilities
+
+Custom CSS classes available in `index.css`:
+
+- `.brutal-border`, `.brutal-border-thin`, `.brutal-border-thick` - Solid black borders
+- `.brutal-shadow`, `.brutal-shadow-sm`, `.brutal-shadow-lg` - Hard-offset drop shadows
+- `.brutal-button` - Interactive button with press effect
+- `.brutal-divider` - Full-width black rule
+- `.animate-slap` - Entrance animation (scale + rotation)
+
+## Project Structure
 
 ```
-bday_app/
-├── public/              # Static assets
+birthday_tracker/
+├── public/                      # Static assets
 ├── src/
-│   ├── components/      # React components
-│   │   ├── ContactList.jsx
-│   │   ├── DatePicker.jsx
-│   │   └── FileUpload.jsx
-│   ├── App.jsx          # Main application component
-│   ├── main.jsx         # Application entry point
-│   └── index.css        # Global styles
+│   ├── components/
+│   │   ├── ContactList.jsx      # Birthday list with avatar badges
+│   │   ├── DatePicker.jsx       # Custom calendar with birthday dots
+│   │   └── FileUpload.jsx       # Drag-and-drop upload zone
+│   ├── utils/
+│   │   └── notifications.js     # Capacitor notifications + localStorage
+│   ├── App.jsx                  # Main application component
+│   ├── main.jsx                 # Entry point
+│   └── index.css                # Design tokens and brutalist utilities
+├── android/                     # Capacitor Android project
+├── capacitor.config.json        # Capacitor configuration
 ├── package.json
 └── vite.config.js
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
+## License
 
 This project is open source and available under the MIT License.
 
-## 👨‍💻 Author
+## Author
 
 **DysCreate**
 
 - GitHub: [@DysCreate](https://github.com/DysCreate)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Icons by [Lucide](https://lucide.dev/)
 - Animations by [Framer Motion](https://www.framer.com/motion/)
@@ -188,4 +220,4 @@ This project is open source and available under the MIT License.
 
 ---
 
-Made with ❤️ and React
+Made with React
