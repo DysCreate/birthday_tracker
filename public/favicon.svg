@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Birthday cake body - bottom tier -->
+  <rect x="8" y="36" width="48" height="18" rx="4" fill="#FF5C5C" stroke="#111111" stroke-width="3"/>
+  <!-- Cake frosting drip -->
+  <path d="M8 40 Q12 48, 16 40 Q20 48, 24 40 Q28 48, 32 40 Q36 48, 40 40 Q44 48, 48 40 Q52 48, 56 40" fill="#FFD23F" stroke="#111111" stroke-width="2"/>
+  <!-- Cake middle tier -->
+  <rect x="14" y="24" width="36" height="14" rx="3" fill="#4C6EF5" stroke="#111111" stroke-width="3"/>
+  <!-- Frosting on middle tier -->
+  <path d="M14 28 Q18 34, 22 28 Q26 34, 30 28 Q34 34, 38 28 Q42 34, 46 28 Q50 34, 50 28" fill="#FFD23F" stroke="#111111" stroke-width="2"/>
+  <!-- Candle -->
+  <rect x="28" y="10" width="8" height="16" rx="1" fill="#FFF9EC" stroke="#111111" stroke-width="2.5"/>
+  <!-- Candle stripe -->
+  <rect x="28" y="14" width="8" height="4" fill="#FF5C5C"/>
+  <rect x="28" y="22" width="8" height="4" fill="#FF5C5C"/>
+  <!-- Flame -->
+  <ellipse cx="32" cy="7" rx="4" ry="6" fill="#FFD23F" stroke="#111111" stroke-width="2"/>
+  <ellipse cx="32" cy="7" rx="2" ry="3.5" fill="#FF5C5C"/>
+</svg>
