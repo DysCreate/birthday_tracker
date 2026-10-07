@@ -6,6 +6,19 @@ import DatePicker from './components/DatePicker';
 import ContactList from './components/ContactList';
 import { Bell, BellOff, BellRing, Check, X } from 'lucide-react';
 import {
+  Balloon,
+  CakeDoodle,
+  Confetti,
+  CurvyArrow,
+  DashedPath,
+  Heart,
+  PaperPlane,
+  Sparkle,
+  SquiggleUnderline,
+  Sun,
+  Swirl,
+} from './components/Doodles';
+import {
   scheduleAllBirthdayNotifications,
   cancelAllNotifications,
   checkNotificationPermission,
@@ -14,6 +27,15 @@ import {
   clearContactsFromStorage,
   isNative,
 } from './utils/notifications';
+
+const HOW_TO_STEPS = [
+  'Prepare an Excel file with columns named "Name" and "BirthDate"',
+  'Upload your file using the drag-and-drop zone above',
+  'Select a date from the calendar to view birthdays',
+  'Enable birthday reminders to get notified 1 day before each birthday',
+];
+
+const STEP_TINTS = ['bg-sunshine', 'bg-baby-blue-soft', 'bg-sunshine-soft', 'bg-paper-shade'];
 
 function App() {
   const [contacts, setContacts] = useState([]);
@@ -232,45 +254,105 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8" style={{ background: '#FFF9EC' }}>
-      <div className="max-w-4xl mx-auto">
-        <div className="animate-slap text-center mb-10">
-          <div className="inline-block brutal-border-thick bg-accent-tertiary px-6 py-3 mb-4 -rotate-1">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-display text-ink uppercase tracking-tight">
-              Birthday Tracker
-            </h1>
-          </div>
-          <p className="font-body text-ink text-lg max-w-xl mx-auto">
-            NEVER MISS A BIRTHDAY AGAIN
-          </p>
+    <div className="min-h-screen pb-24">
+      {/* ---------------------------------------------------------------- nav */}
+      <header className="sticky top-0 z-40 border-b-2 border-dashed border-ink/30 bg-paper">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
+          <a href="#top" className="group flex shrink-0 items-center gap-2">
+            <CakeDoodle className="h-7 w-7 text-red transition-transform duration-200 group-hover:-rotate-12" />
+            <span className="font-brush text-xl leading-none text-ink sm:text-2xl">
+              Birthday<span className="text-red">Tracker</span>
+            </span>
+          </a>
+
+          <nav aria-label="Page sections" className="hidden items-center gap-6 md:flex">
+            <a className="nav-link" href="#upload">Upload</a>
+            {contacts.length > 0 && (
+              <>
+                <a className="nav-link" href="#calendar">Calendar</a>
+                <a className="nav-link" href="#birthdays">Birthdays</a>
+              </>
+            )}
+          </nav>
+
+          <a href="#upload" className="btn btn-outline btn-sm nav-cta">
+            Add Birthdays <span aria-hidden="true">+</span>
+          </a>
         </div>
+      </header>
 
-        <div className="brutal-divider mb-8" />
+      <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        {/* ------------------------------------------------------------- hero */}
+        <section id="top" className="relative pt-10 pb-6 sm:pt-14">
+          <Confetti className="doodle doodle-twinkle left-0 top-4 hidden h-16 w-16 text-red sm:block lg:h-20 lg:w-20" />
+          <Sun className="doodle doodle-float right-1 top-0 h-14 w-14 text-sunshine drop-shadow-[1px_2px_0_rgba(26,26,26,0.35)] sm:right-6 sm:h-20 sm:w-20" />
+          <Sparkle className="doodle doodle-twinkle right-24 top-24 hidden h-6 w-6 text-red lg:block" />
+          <Sparkle className="doodle left-10 bottom-6 hidden h-5 w-5 text-ink/40 lg:block" />
+          <Swirl className="doodle hidden h-12 w-12 text-ink/30 md:block" style={{ left: '18%', top: '6%' }} />
 
+          <div className="relative z-10 mx-auto max-w-3xl text-center">
+            <p className="eyebrow">— your scrapbook of big days —</p>
+
+            <h1 className="marker-title mt-3 text-[2.1rem] sm:text-5xl md:text-6xl lg:text-7xl">
+              Never Miss a Big Day.
+            </h1>
+
+            <SquiggleUnderline className="mx-auto mt-2 h-4 w-[64%] max-w-md text-red" />
+
+            <p className="hand-note mt-4 text-2xl sm:text-3xl">
+              good cake. good people. happy vibes <span className="text-red">♡</span>
+            </p>
+
+            <p className="mx-auto mt-3 max-w-md text-sm text-ink/85 sm:text-base">
+              Stick your list on the page and every candle gets remembered — pinned to the
+              calendar, ready to celebrate.
+            </p>
+          </div>
+
+          <CurvyArrow className="doodle hidden h-16 w-16 text-ink/45 lg:block" style={{ right: '12%', bottom: '-1rem' }} />
+        </section>
+
+        <hr className="rule-dashed my-6" />
+
+        {/* ------------------------------------------------------- alerts */}
         <AnimatePresence>
           {showNotificationBanner && notificationStatus && (
-            <div className="mb-6 animate-slap">
-              <div className={`brutal-border flex items-center justify-between p-4 ${
-                notificationStatus.permissionDenied ? 'bg-accent-primary' : 'bg-success'
-              }`}>
-                <div className="flex items-center gap-3">
-                  {notificationStatus.permissionDenied ? (
-                    <BellOff className="w-5 h-5 text-ink shrink-0" />
-                  ) : (
-                    <Check className="w-5 h-5 text-ink shrink-0" />
-                  )}
-                  <span className="font-body font-bold text-ink text-sm uppercase">
+            <div className="animate-rise mb-6">
+              <div
+                role="status"
+                className={`note relative flex items-start justify-between gap-3 px-4 py-4 pr-3 sm:px-6 ${
+                  notificationStatus.permissionDenied ? 'bg-paper-shade' : 'bg-sunshine-soft'
+                }`}
+              >
+                <span className="tape tape-red" aria-hidden="true" />
+
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`mt-0.5 flex h-8 w-8 shrink-0 rotate-[-6deg] items-center justify-center rounded-lg border-2 border-ink ${
+                      notificationStatus.permissionDenied ? 'bg-red' : 'bg-sunshine'
+                    }`}
+                  >
+                    {notificationStatus.permissionDenied ? (
+                      <BellOff className={`h-4 w-4 ${notificationStatus.permissionDenied ? 'text-white' : 'text-ink'}`} aria-hidden="true" />
+                    ) : (
+                      <Check className="h-4 w-4 text-ink" aria-hidden="true" />
+                    )}
+                  </span>
+                  <p className="text-sm font-medium leading-snug text-ink">
                     {notificationStatus.permissionDenied
-                      ? 'Notification permission denied. Please enable in your device settings.'
+                      ? 'Notification permission denied. Please enable it in your device settings.'
                       : `${notificationStatus.scheduled} reminder${notificationStatus.scheduled !== 1 ? 's' : ''} scheduled! You'll be notified 1 day before each birthday at 9:00 AM.`
                     }
-                  </span>
+                  </p>
                 </div>
+
                 <button
+                  type="button"
+                  aria-label="Dismiss notification message"
                   onClick={() => setShowNotificationBanner(false)}
-                  className="brutal-button bg-surface px-3 py-1 text-sm uppercase font-bold"
+                  className="btn btn-sm btn-icon"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -278,119 +360,181 @@ function App() {
         </AnimatePresence>
 
         {parseError && (
-          <div className="mb-6 animate-slap">
-            <div className="brutal-border bg-accent-primary flex items-start justify-between p-4 gap-3">
+          <div className="animate-rise mb-6">
+            <div role="alert" className="note relative flex items-start justify-between gap-3 border-red bg-paper px-4 py-4 sm:px-6">
+              <span className="tape tape-red tape-tilt-r" aria-hidden="true" />
+
               <div className="flex items-start gap-3">
-                <span className="font-mono text-ink font-bold text-lg leading-none shrink-0 mt-0.5">!</span>
-                <span className="font-body font-bold text-ink text-sm uppercase">{parseError}</span>
+                <span className="font-marker mt-0.5 flex h-8 w-8 shrink-0 rotate-[-6deg] items-center justify-center rounded-lg border-2 border-ink bg-red text-lg leading-none text-white">
+                  !
+                </span>
+                <p className="text-sm font-medium leading-snug text-ink">{parseError}</p>
               </div>
+
               <button
+                type="button"
+                aria-label="Dismiss error message"
                 onClick={() => setParseError(null)}
-                className="brutal-button bg-surface px-2 py-1 text-xs uppercase font-bold shrink-0"
+                className="btn btn-sm btn-icon"
               >
-                <X className="w-3 h-3" />
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </div>
           </div>
         )}
 
-        <div className="mb-8">
+        {/* ------------------------------------------------------- upload */}
+        <section id="upload" className="relative pt-2">
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+            <span className="section-heading">
+              <PaperPlane className="h-5 w-5 text-red" />
+              <span className="label-serif text-[0.62rem] text-ink">step one · your list</span>
+            </span>
+            {contacts.length === 0 ? (
+              <span className="sticker rotate-[3deg]">start here</span>
+            ) : (
+              <span className="sticker sticker-paper">
+                {contacts.length} {contacts.length === 1 ? 'birthday' : 'birthdays'} saved
+              </span>
+            )}
+          </div>
+
           <FileUpload onFileUpload={handleFileUpload} />
-        </div>
+        </section>
 
         {contacts.length > 0 && (
           <>
-            <div className="brutal-divider mb-8" />
+            <DashedPath className="mt-10 h-9 w-full text-ink/35" />
 
-            <div className="mb-8 animate-slap">
-              <div className="bg-surface brutal-border brutal-shadow p-6">
-                <div className="flex items-center justify-between flex-wrap gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 brutal-border-thin ${notificationsEnabled ? 'bg-accent-primary' : 'bg-bg'}`}>
-                      {notificationsEnabled ? (
-                        <BellRing className="w-6 h-6 text-ink" />
-                      ) : (
-                        <Bell className="w-6 h-6 text-ink" />
-                      )}
+            {/* ------------------------------------------------- reminders */}
+            <section id="reminders" aria-label="Birthday reminders" className="mt-6 mb-10">
+              <div className="animate-rise relative">
+                <span className="tape tape-wide tape-blue" aria-hidden="true" />
+
+                <div className="card px-5 py-6 sm:px-7 sm:py-7">
+                  <div className="flex flex-wrap items-center justify-between gap-5">
+                    <div className="flex items-center gap-4">
+                      <span
+                        className={`flex h-14 w-14 shrink-0 rotate-[-6deg] items-center justify-center rounded-2xl border-2 border-ink ${
+                          notificationsEnabled ? 'bg-red' : 'bg-sunshine'
+                        }`}
+                      >
+                        {notificationsEnabled ? (
+                          <BellRing className="h-7 w-7 text-white" aria-hidden="true" />
+                        ) : (
+                          <Bell className="h-7 w-7 text-ink" aria-hidden="true" />
+                        )}
+                      </span>
+
+                      <div className="min-w-0">
+                        <h2 className="font-brush text-2xl text-ink">Birthday reminders</h2>
+                        <p className="mt-0.5 text-xs text-ink/75">
+                          {notificationsEnabled
+                            ? 'You will receive notifications 1 day before each birthday'
+                            : 'Get notified 1 day before upcoming birthdays'
+                          }
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-display text-ink text-lg uppercase tracking-tight">Birthday Reminders</h3>
-                      <p className="font-mono text-ink text-xs uppercase tracking-wide">
-                        {notificationsEnabled
-                          ? 'You will receive notifications 1 day before each birthday'
-                          : 'Get notified 1 day before upcoming birthdays'
-                        }
+
+                    <button
+                      type="button"
+                      onClick={notificationsEnabled ? handleDisableNotifications : handleEnableNotifications}
+                      disabled={!isNative()}
+                      aria-pressed={notificationsEnabled}
+                      className={`btn ${notificationsEnabled ? 'bg-paper' : 'btn-primary'}`}
+                    >
+                      {notificationsEnabled ? 'Disable' : 'Enable reminders'}
+                    </button>
+                  </div>
+
+                  {!isNative() && (
+                    <div className="mt-5 flex items-start gap-3 rounded-2xl border-2 border-dashed border-ink/40 bg-paper-warm px-4 py-3">
+                      <Sparkle className="mt-0.5 h-4 w-4 shrink-0 text-red" />
+                      <p className="text-xs text-ink/85">
+                        Reminders are not yet available in the web version — mobile app support
+                        is coming soon.
                       </p>
                     </div>
-                  </div>
-                  <button
-                    onClick={notificationsEnabled ? handleDisableNotifications : handleEnableNotifications}
-                    disabled={!isNative()}
-                    className={`brutal-button px-5 py-3 text-sm uppercase font-bold ${
-                      notificationsEnabled
-                        ? 'bg-bg text-ink'
-                        : 'bg-accent-primary text-ink'
-                    }`}
-                    style={!isNative() ? { boxShadow: 'none', transform: 'none' } : {}}
-                  >
-                    {notificationsEnabled ? 'Disable' : 'Enable Reminders'}
-                  </button>
+                  )}
                 </div>
-                {!isNative() && (
-                  <div className="brutal-border-thin bg-accent-tertiary px-4 py-2 mt-4 inline-block -rotate-1">
-                    <p className="font-mono text-ink text-xs uppercase font-bold tracking-wide">
-                      Note: Reminders are not yet available in the web version. Mobile app support is coming soon.
-                    </p>
-                  </div>
-                )}
               </div>
-            </div>
+            </section>
 
-            <div className="brutal-divider mb-8" />
+            <hr className="rule-dashed mb-10" />
 
-            <div ref={datePickerRef} className="mb-8">
-              <DatePicker
-                onDateSelect={handleDateSelect}
+            {/* ---------------------------------------------------- calendar */}
+            <section id="calendar" className="mb-10">
+              <div className="mb-5 flex flex-wrap items-center gap-3">
+                <span className="section-heading">
+                  <CakeDoodle className="h-6 w-6 text-red" />
+                  <span className="label-serif text-[0.62rem] text-ink">step two · pick a day</span>
+                </span>
+                <span className="font-hand text-xl font-bold text-ink/80">
+                  tap a yellow square — that day is someone&apos;s birthday
+                </span>
+              </div>
+
+              <div ref={datePickerRef}>
+                <DatePicker
+                  onDateSelect={handleDateSelect}
+                  selectedDate={selectedDate}
+                  contacts={contacts}
+                />
+              </div>
+            </section>
+
+            {/* --------------------------------------------------- birthdays */}
+            <section id="birthdays" aria-label="Birthdays on the selected date">
+              <ContactList
+                contacts={filteredContacts}
                 selectedDate={selectedDate}
-                contacts={contacts}
               />
-            </div>
-
-            <ContactList
-              contacts={filteredContacts}
-              selectedDate={selectedDate}
-            />
+            </section>
           </>
         )}
 
+        {/* ------------------------------------------------------- how-to */}
         {contacts.length === 0 && (
-          <div className="animate-slap bg-surface brutal-border brutal-shadow-lg p-8 mt-8">
-            <div className="bg-accent-tertiary brutal-border-thin px-4 py-2 inline-block -rotate-1 mb-6 -ml-2">
-              <h3 className="font-display text-ink text-xl uppercase tracking-tight">
-                HOW TO USE
-              </h3>
+          <section className="relative mt-10">
+            <div className="animate-rise note relative px-5 py-9 sm:px-10 sm:py-11">
+              <span className="tape tape-wide tape-red" aria-hidden="true" />
+
+              <Sparkle className="doodle doodle-twinkle right-6 top-8 h-5 w-5 text-red" />
+              <Sparkle className="doodle doodle-twinkle left-6 bottom-8 h-4 w-4 text-ink/35" />
+
+              <div className="mb-7 text-center">
+                <div className="relative mx-auto w-24">
+                  <Balloon className="doodle-float mx-auto h-20 w-20 text-baby-blue-deep" />
+                  <Heart className="doodle -right-2 bottom-1 h-8 w-8 text-red" />
+                  <Confetti className="doodle -left-4 top-0 h-9 w-9 text-ink/45" />
+                </div>
+
+                <h2 className="font-marker mt-4 rotate-[-2deg] text-2xl text-red sm:text-3xl">
+                  Nothing pinned here yet!
+                </h2>
+                <p className="font-hand mt-2 text-2xl font-bold text-ink">
+                  three little steps and you&apos;re good to go ♡
+                </p>
+              </div>
+
+              <ol className="mx-auto grid max-w-2xl gap-4">
+                {HOW_TO_STEPS.map((step, index) => (
+                  <li key={step} className="flex items-start gap-4">
+                    <span
+                      className={`font-marker flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-ink text-lg leading-none shadow-sticker ${STEP_TINTS[index % STEP_TINTS.length]}`}
+                      aria-hidden="true"
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="pt-1 text-sm text-ink sm:text-base">{step}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
-            <ol className="space-y-4">
-              <li className="flex items-start gap-4">
-                <span className="font-mono text-ink font-bold text-lg leading-tight shrink-0 w-8 h-8 brutal-border-thin bg-accent-primary flex items-center justify-center">1</span>
-                <span className="font-body text-ink">Prepare an Excel file with columns named "Name" and "BirthDate"</span>
-              </li>
-              <li className="flex items-start gap-4">
-                <span className="font-mono text-ink font-bold text-lg leading-tight shrink-0 w-8 h-8 brutal-border-thin bg-accent-secondary flex items-center justify-center">2</span>
-                <span className="font-body text-ink">Upload your file using the drag-and-drop zone above</span>
-              </li>
-              <li className="flex items-start gap-4">
-                <span className="font-mono text-ink font-bold text-lg leading-tight shrink-0 w-8 h-8 brutal-border-thin bg-accent-tertiary flex items-center justify-center">3</span>
-                <span className="font-body text-ink">Select a date from the calendar to view birthdays</span>
-              </li>
-              <li className="flex items-start gap-4">
-                <span className="font-mono text-ink font-bold text-lg leading-tight shrink-0 w-8 h-8 brutal-border-thin bg-accent-primary flex items-center justify-center">4</span>
-                <span className="font-body text-ink">Enable birthday reminders to get notified 1 day before each birthday</span>
-              </li>
-            </ol>
-          </div>
+          </section>
         )}
-      </div>
+      </main>
     </div>
   );
 }

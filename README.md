@@ -23,7 +23,7 @@ A bold, neobrutalist React application for tracking and managing birthdays. Uplo
 - **Interactive Calendar** - Custom date picker with month navigation. Birthday indicator dots highlight dates with upcoming birthdays.
 - **Birthday Reminders** - Native Android local notifications scheduled 1 day before each birthday at 9:00 AM. Enable/disable toggle with status banner.
 - **Local Persistence** - Contacts are saved to localStorage and survive app restarts (up to 5,000 contacts).
-- **Neobrutalist UI** - Bold borders, hard-offset shadows, slab typography, and a high-contrast color palette built on a custom design token system.
+- **Scrapbook UI** - A playful handmade "birthday journal": polaroid cards with washi tape, handwritten marker headlines, sticker badges, inline-SVG doodles, and a warm high-contrast palette built on a custom design token system.
 - **Reduced Motion Support** - All animations and transitions are disabled when the user prefers reduced motion.
 
 ## Prerequisites
@@ -146,36 +146,47 @@ npx cap run android -l --external
 
 ### Design Tokens
 
-The neobrutalist theme is defined via CSS custom properties in `src/index.css` using Tailwind v4's `@theme` block:
+The scrapbook theme is defined via CSS custom properties in `src/index.css` using Tailwind v4's `@theme` block:
 
 ```css
 @theme {
-  --color-bg: #FFF9EC;
-  --color-ink: #111111;
-  --color-surface: #FFFFFF;
-  --color-accent-primary: #FF5C5C;
-  --color-accent-secondary: #4C6EF5;
-  --color-accent-tertiary: #FFD23F;
-  --color-success: #2FBF71;
-  --color-danger: #E63946;
+  --color-baby-blue: #B7D8F5; /* main page background */
+  --color-red: #E10600;       /* headlines, primary buttons */
+  --color-sunshine: #FFD700;  /* tape, stickers, badges, hover */
+  --color-ink: #1A1A1A;       /* body text */
+  --color-paper: #FFFFFF;     /* cards, polaroids */
+  --color-paper-warm: #FFF8E7;
 }
 ```
 
+Tokens also cover fonts, sticker shadows (`--shadow-sticker`, `--shadow-photo`) and the
+hand-drawn border radii (`--radius-sketch`), so shadows and shapes stay consistent.
+
 ### Fonts
 
-- **Archivo Black** - Display headlines (all-uppercase)
-- **Space Grotesk** - Body text
-- **JetBrains Mono** - Labels and numbers
+- **Permanent Marker** - Hero/headline marker lettering (tilted, red)
+- **Caveat Brush** - Section and brand headings
+- **Caveat** - Handwritten notes, captions and sticker badges
+- **DM Sans** - Body and UI text
+- **Playfair Display** - Small serif labels
 
-### Brutalist Utilities
+### Scrapbook Utilities
 
 Custom CSS classes available in `index.css`:
 
-- `.brutal-border`, `.brutal-border-thin`, `.brutal-border-thick` - Solid black borders
-- `.brutal-shadow`, `.brutal-shadow-sm`, `.brutal-shadow-lg` - Hard-offset drop shadows
-- `.brutal-button` - Interactive button with press effect
-- `.brutal-divider` - Full-width black rule
-- `.animate-slap` - Entrance animation (scale + rotation)
+- `.card`, `.note` - Paper surfaces with thick ink borders and hard-offset shadows
+- `.polaroid` (+ `.tilt-a` … `.tilt-f`) - Birthday card with tape, tilt and hover lift
+- `.tape` (+ `.tape-red`, `.tape-blue`, `.tape-tilt-r`) - Washi tape strips
+- `.sticker` (+ `.sticker-red`, `.sticker-paper`) - Sticker badges
+- `.btn` (+ `.btn-primary`, `.btn-accent`, `.btn-block`) - Sticker-style button with press effect
+- `.day-cell` (+ `data-birthday`, `data-selected`, `data-empty`) - Calendar day cells
+- `.dropzone` - Hand-drawn dashed upload area
+- `.marker-title`, `.hand-note`, `.label-serif`, `.highlight-stroke` - Type helpers
+- `.doodle` (+ `.doodle-float`, `.doodle-twinkle`) - Decorative SVG positioning and motion
+- `.animate-rise` - Entrance animation (rise + rotate); `.polaroid` cards pop in via the `pop-in` keyframe. All motion is disabled under `prefers-reduced-motion`
+
+Decorative inline SVGs (sun, stars, hearts, cake, balloons, confetti, squiggles) live in
+`src/components/Doodles.jsx` - lightweight, no image assets or icon dependencies for them.
 
 ## Project Structure
 
@@ -184,14 +195,15 @@ birthday_tracker/
 ├── public/                      # Static assets
 ├── src/
 │   ├── components/
-│   │   ├── ContactList.jsx      # Birthday list with avatar badges
-│   │   ├── DatePicker.jsx       # Custom calendar with birthday dots
+│   │   ├── ContactList.jsx      # Polaroid birthday cards with days-left stickers
+│   │   ├── DatePicker.jsx       # Index-card calendar with birthday dots
+│   │   ├── Doodles.jsx          # Decorative inline-SVG doodles
 │   │   └── FileUpload.jsx       # Drag-and-drop upload zone
 │   ├── utils/
 │   │   └── notifications.js     # Capacitor notifications + localStorage
 │   ├── App.jsx                  # Main application component
 │   ├── main.jsx                 # Entry point
-│   └── index.css                # Design tokens and brutalist utilities
+│   └── index.css                # Design tokens and scrapbook utilities
 ├── android/                     # Capacitor Android project
 ├── capacitor.config.json        # Capacitor configuration
 ├── package.json

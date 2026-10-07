@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Upload, FileSpreadsheet, X } from 'lucide-react';
+import { CakeDoodle, Sparkle } from './Doodles';
 
 const FileUpload = ({ onFileUpload }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -72,69 +73,93 @@ const FileUpload = ({ onFileUpload }) => {
     onFileUpload(null);
   };
 
+  const openPicker = () => {
+    if (!fileName) fileInputRef.current?.click();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openPicker();
+    }
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => !fileName && fileInputRef.current?.click()}
-        className={`
-          brutal-border brutal-shadow bg-surface p-12 cursor-pointer
-          transition-all duration-100
-          ${isDragging ? 'bg-accent-secondary translate-x-1 translate-y-1 shadow-none' : ''}
-          ${!isDragging && fileName ? 'bg-success' : ''}
-        `}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+      <div className="relative">
+        <span className={`tape tape-wide ${fileName ? 'tape-red' : ''}`} aria-hidden="true" />
 
-        {fileName ? (
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative">
-              <FileSpreadsheet className="w-16 h-16 text-ink" />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClearFile();
-                }}
-                className="brutal-button bg-accent-primary text-ink p-1 absolute -top-3 -right-3"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="text-center">
-              <p className="font-mono text-ink font-bold text-lg uppercase tracking-wide">{fileName}</p>
-              <div className="brutal-border-thin bg-bg px-3 py-1 mt-2 inline-block">
-                <p className="font-mono text-ink text-xs uppercase">File uploaded successfully</p>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload a spreadsheet of birthdays: drag and drop or press Enter to browse for an .xlsx, .xls or .csv file"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={openPicker}
+          onKeyDown={handleKeyDown}
+          className={`dropzone animate-rise px-6 py-10 sm:px-10 sm:py-12 text-center
+            ${isDragging ? 'is-dragging' : ''}
+            ${!isDragging && fileName ? 'is-loaded' : ''}
+          `}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          {fileName ? (
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <FileSpreadsheet className="w-14 h-14 text-ink" aria-hidden="true" />
+                <button
+                  type="button"
+                  aria-label={`Remove ${fileName} and clear all birthdays`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClearFile();
+                  }}
+                  className="btn btn-primary btn-icon absolute -top-3 -right-4"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div>
+                <p className="font-hand text-2xl font-bold text-ink break-all">{fileName}</p>
+                <span className="sticker sticker-red mt-3">
+                  ✓ saved to this device
+                </span>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center space-y-4">
-            <div className={`transition-transform duration-100 ${isDragging ? 'translate-x-1 translate-y-1' : ''}`}>
-              <Upload className={`w-16 h-16 text-ink`} />
-            </div>
-            <div className="text-center">
-              <p className="font-display text-ink text-xl uppercase tracking-tight">
-                {isDragging ? 'Drop your file here' : 'Upload Excel File'}
-              </p>
-              <div className="brutal-border-thin bg-accent-tertiary px-4 py-2 mt-3 inline-block">
-                <p className="font-mono text-ink text-sm uppercase tracking-wide font-bold">
-                  Drag & drop or click to select
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <div className={`relative transition-transform ${isDragging ? 'scale-110' : ''}`}>
+                <CakeDoodle className="w-16 h-16 text-red" />
+                <Upload className="w-5 h-5 text-ink absolute -right-3 -bottom-1" aria-hidden="true" />
+                <Sparkle className="w-4 h-4 text-red absolute -left-4 top-0 doodle-twinkle" />
+              </div>
+
+              <div>
+                <p className="font-hand text-3xl font-bold text-ink leading-tight">
+                  {isDragging ? 'Drop it right here!' : 'Stick your birthday list here'}
+                </p>
+                <p className="text-sm text-ink/80 mt-2">
+                  Drag &amp; drop — or click to pick a file. Enter works too.
                 </p>
               </div>
-              <p className="font-mono text-ink text-xs uppercase tracking-wide mt-3">
-                Supports .xlsx, .xls, and .csv files
-              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="sticker sticker-paper sticker-wiggle">.xlsx</span>
+                <span className="sticker sticker-paper sticker-wiggle">.xls</span>
+                <span className="sticker sticker-paper sticker-wiggle">.csv</span>
+                <span className="label-serif text-[0.62rem] text-ink/70">max 10 MB</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

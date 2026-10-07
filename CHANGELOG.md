@@ -2,6 +2,25 @@
 
 All notable changes to the Birthday Tracker project will be documented in this file.
 
+## [3.0.0] - 2026-10-07 — "Scrapbook Birthday Journal" redesign
+
+### Changed
+- **Complete visual redesign** in a playful handmade scrapbook style. No functionality, data logic, routes or state management was changed — only visual design, layout and markup structure.
+  - New palette via CSS variables: baby blue `#B7D8F5` page background, red `#E10600` headlines/CTAs, sunshine `#FFD700` tape/stickers, ink `#1A1A1A` text, white/warm paper surfaces.
+  - New typography: **Permanent Marker** (tilted red hero headings with hand-drawn underline squiggles), **Caveat Brush**, **Caveat** (handwritten notes/tags), **DM Sans** (body/UI), **Playfair Display** (small labels).
+  - Birthday entries are now polaroid cards with washi tape, deterministic tilt, days-left sticker badges, "turns N" age, and a highlighted `Today!` state with party-hat/confetti doodles.
+  - Calendar restyled as a taped index card; upload zone as a hand-drawn paper note; buttons as stickers with a 2px ink border and hard offset shadow.
+  - New `src/components/Doodles.jsx` with lightweight decorative inline SVGs (sun, sparkles, hearts, cake, balloons, confetti, squiggles, dashed flight paths).
+- Motion is subtle and fully disabled under `prefers-reduced-motion`.
+- Accessibility: semantic sections, `aria-expanded`/`aria-pressed`/`aria-label` on interactive controls, keyboard-operable upload zone, and a dark + sunshine double focus ring.
+
+### Verified
+- Builds with Vite; ESLint reports the same single pre-existing warning as before the redesign.
+- Automated headless-browser checks at 360px, 768px and 1280px: no horizontal overflow, all fonts load, every feature still works (upload → parse → save, calendar month nav, day selection, filtered list, empty states, parse-error banner, reminder toggle, clear/reset).
+- WCAG AA contrast audit over all rendered text: 0 failures at all three widths.
+
+---
+
 ## [2.0.0] - 2026-03-21 — Capacitor & Notification Implementation Complete
 
 ### Added

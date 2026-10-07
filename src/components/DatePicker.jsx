@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CakeDoodle } from './Doodles';
 
 const DatePicker = ({ onDateSelect, selectedDate, contacts = [] }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -76,71 +77,121 @@ const DatePicker = ({ onDateSelect, selectedDate, contacts = [] }) => {
   return (
     <div className="relative w-full mx-auto">
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="brutal-button brutal-shadow w-full px-6 py-4 bg-surface flex items-center justify-between gap-3 text-left"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
+        className="group flex w-full items-center justify-between gap-3 rounded-2xl border-[3px] border-ink bg-paper px-4 py-3.5 text-left shadow-sticker-lg
+                   transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-sticker-lg"
       >
-        <div className="flex items-center gap-3">
-          <Calendar className="w-5 h-5 text-ink shrink-0" />
-          <span className="font-body font-bold text-ink uppercase tracking-wide">{formatSelectedDate()}</span>
-        </div>
-        <ChevronRight
-          className={`w-5 h-5 text-ink transition-transform duration-100 ${isOpen ? 'rotate-90' : ''}`}
-        />
+        <span className="flex min-w-0 items-center gap-3">
+          <span
+            className={`flex h-10 w-10 shrink-0 rotate-[-5deg] items-center justify-center rounded-xl border-2 border-ink transition-colors duration-200 ${
+              isOpen ? 'bg-red' : 'bg-sunshine'
+            }`}
+          >
+            <Calendar className={`h-5 w-5 ${isOpen ? 'text-white' : 'text-ink'}`} aria-hidden="true" />
+          </span>
+          <span className="min-w-0">
+            <span className="label-serif block text-[0.58rem] text-ink/70">birthdays on</span>
+            <span className="font-hand block truncate text-2xl font-bold leading-tight text-ink">
+              {formatSelectedDate()}
+            </span>
+          </span>
+        </span>
+
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="label-serif hidden text-[0.58rem] text-ink/60 sm:block">
+            {isOpen ? 'close' : 'open'}
+          </span>
+          <ChevronRight
+            className={`h-5 w-5 text-ink transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+            aria-hidden="true"
+          />
+        </span>
       </button>
 
       {isOpen && (
-        <div className="animate-slap absolute top-full mt-2 w-full bg-surface brutal-border brutal-shadow-lg z-50">
-          <div className="flex items-center justify-between px-6 py-4 brutal-border-thin" style={{ borderBottomWidth: '3px' }}>
+        <div
+          role="dialog"
+          aria-label="Choose a date to see birthdays"
+          className="animate-rise card absolute top-full z-50 mt-3 w-full overflow-hidden"
+        >
+          <span className="tape tape-red" aria-hidden="true" />
+
+          <div className="flex items-center justify-between gap-2 border-b-[3px] border-dashed border-ink/30 px-3 py-3 sm:px-5">
             <button
+              type="button"
               onClick={handlePreviousMonth}
-              className="brutal-button bg-bg p-2"
+              aria-label="Previous month"
+              className="btn btn-sm btn-icon"
             >
-              <ChevronLeft className="w-5 h-5 text-ink" />
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </button>
 
-            <h3 className="font-display text-ink text-lg uppercase tracking-tight">
+            <h3 className="font-brush rotate-[-1.5deg] text-xl text-red sm:text-2xl">
               {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </h3>
 
             <button
+              type="button"
               onClick={handleNextMonth}
-              className="brutal-button bg-bg p-2"
+              aria-label="Next month"
+              className="btn btn-sm btn-icon"
             >
-              <ChevronRight className="w-5 h-5 text-ink" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
-          <div className="p-4">
-            <div className="grid grid-cols-7 gap-1 mb-2">
+          <div className="mx-auto w-full max-w-md bg-paper-warm/60 p-3 sm:p-4">
+            <div className="mb-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-                <div key={day} className="text-center font-mono text-ink font-bold text-xs py-2 uppercase tracking-wide">
+                <div
+                  key={day}
+                  className="label-serif py-1 text-center text-[0.55rem] text-ink/60"
+                >
                   {day}
                 </div>
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
               {getDaysInMonth(currentMonth).map((date, index) => (
                 <button
                   key={index}
+                  type="button"
                   onClick={() => handleDateClick(date)}
                   disabled={!date}
-                  className={`
-                    aspect-square flex flex-col items-center justify-center text-sm font-bold relative
-                    transition-all duration-100
-                    ${!date ? 'invisible' : ''}
-                    ${isSelectedDate(date)
-                      ? 'bg-accent-primary text-ink brutal-border-thin'
-                      : hasBirthday(date)
-                        ? 'bg-accent-tertiary text-ink brutal-border-thin'
-                        : 'bg-bg text-ink hover:bg-accent-secondary hover:text-white'
-                    }
-                  `}
-                  style={isSelectedDate(date) ? { boxShadow: '3px 3px 0px 0px #111' } : {}}
+                  data-empty={!date ? 'true' : undefined}
+                  data-birthday={hasBirthday(date) ? 'true' : undefined}
+                  data-selected={isSelectedDate(date) ? 'true' : undefined}
+                  aria-pressed={date ? isSelectedDate(date) : undefined}
+                  aria-label={
+                    date
+                      ? `${date.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                        })}${hasBirthday(date) ? ' — has a birthday' : ''}`
+                      : undefined
+                  }
+                  className="day-cell"
                 >
-                  <span className="font-mono font-bold">{date ? date.getDate() : ''}</span>
+                  <span className="text-[0.78rem] sm:text-sm">{date ? date.getDate() : ''}</span>
                 </button>
               ))}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t-[2px] border-dashed border-ink/25 pt-2.5">
+              <span className="flex items-center gap-1.5 text-xs text-ink/75">
+                <span className="h-2.5 w-2.5 rounded-full border border-ink bg-sunshine" aria-hidden="true" />
+                has a birthday
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-ink/75">
+                <span className="h-2.5 w-2.5 rounded-full border border-ink bg-red" aria-hidden="true" />
+                selected
+              </span>
+              <CakeDoodle className="h-5 w-5 text-ink/40" />
             </div>
           </div>
         </div>

@@ -1,108 +1,665 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Scrapbook Birthday Journal — design tokens
+   ========================================================================== */
 @theme {
-  --color-bg: #FFF9EC;
-  --color-ink: #111111;
-  --color-surface: #FFFFFF;
-  --color-accent-primary: #FF5C5C;
-  --color-accent-secondary: #4C6EF5;
-  --color-accent-tertiary: #FFD23F;
-  --color-success: #2FBF71;
-  --color-danger: #E63946;
-  --font-display: "Archivo Black", sans-serif;
-  --font-body: "Space Grotesk", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  /* --- palette -------------------------------------------------------- */
+  --color-baby-blue: #b7d8f5; /* main page background            */
+  --color-baby-blue-deep: #8ec1ea;
+  --color-baby-blue-soft: #dcecfa;
+  --color-red: #e10600; /* headlines, primary buttons      */
+  --color-red-deep: #a80500;
+  --color-sunshine: #ffd700; /* tape, stickers, badges, hover   */
+  --color-sunshine-soft: #ffe97a;
+  --color-ink: #1a1a1a; /* body text                       */
+  --color-paper: #ffffff; /* cards, polaroids                */
+  --color-paper-warm: #fff8e7;
+  --color-paper-shade: #f0e5d2;
+
+  /* --- typography ----------------------------------------------------- */
+  --font-marker: "Permanent Marker", "Caveat Brush", system-ui, cursive;
+  --font-brush: "Caveat Brush", "Permanent Marker", cursive;
+  --font-hand: "Caveat", "Gochi Hand", cursive;
+  --font-hand-alt: "Gochi Hand", "Caveat", cursive;
+  --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --font-label: "Playfair Display", Georgia, serif;
+
+  /* --- sticker shadows ------------------------------------------------ */
+  --shadow-sticker: 2px 2px 0 0 var(--color-ink);
+  --shadow-sticker-md: 4px 4px 0 0 var(--color-ink);
+  --shadow-sticker-lg: 6px 6px 0 0 var(--color-ink);
+  --shadow-photo: 0 12px 22px -10px rgba(26, 26, 26, 0.45);
+  --shadow-photo-lift: 0 26px 32px -14px rgba(26, 26, 26, 0.5);
+  --shadow-note: 0 10px 20px -12px rgba(26, 26, 26, 0.4);
+
+  /* --- shapes --------------------------------------------------------- */
+  --radius-sketch: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --radius-sketch-sm: 125px 12px 115px 12px / 12px 115px 12px 125px;
+  --radius-card: 18px;
+}
+
+:root {
+  --bw: 2px;
+  --bw-thick: 3px;
+  --ease: cubic-bezier(0.22, 0.8, 0.28, 1);
+  --slow: 280ms;
+  --med: 220ms;
+  --fast: 160ms;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
 
 body {
-  background: var(--color-bg);
   min-height: 100vh;
   font-family: var(--font-body);
   color: var(--color-ink);
+  /* dot-grid "sketchbook paper" desk */
+  background-color: var(--color-baby-blue);
+  background-image:
+    radial-gradient(rgba(26, 26, 26, 0.07) 1.1px, transparent 1.2px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 620px);
+  background-size: 20px 20px, 100% 620px;
+  background-repeat: repeat, no-repeat;
 }
 
-.brutal-border {
-  border: 3px solid var(--color-ink);
+::selection {
+  background: var(--color-sunshine);
+  color: var(--color-ink);
 }
 
-.brutal-border-thin {
-  border: 2px solid var(--color-ink);
+[id] {
+  scroll-margin-top: 5.5rem;
 }
 
-.brutal-border-thick {
-  border: 4px solid var(--color-ink);
+/* ==========================================================================
+   Type helpers
+   ========================================================================== */
+.marker-title {
+  font-family: var(--font-marker);
+  color: var(--color-red);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  transform: rotate(-3.5deg);
 }
 
-.brutal-shadow {
-  box-shadow: 6px 6px 0px 0px var(--color-ink);
+.hand-note {
+  font-family: var(--font-hand);
+  font-weight: 700;
+  color: var(--color-ink);
 }
 
-.brutal-shadow-sm {
-  box-shadow: 3px 3px 0px 0px var(--color-ink);
+.label-serif {
+  font-family: var(--font-label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.brutal-shadow-lg {
-  box-shadow: 10px 10px 0px 0px var(--color-ink);
+.eyebrow {
+  font-family: var(--font-hand);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-red-deep);
 }
 
-.brutal-button {
-  border: 3px solid var(--color-ink);
-  box-shadow: 5px 5px 0px 0px var(--color-ink);
-  transform: translate(0, 0);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-  cursor: pointer;
+/* yellow highlighter stroke behind inline text */
+.highlight-stroke {
+  background-image: linear-gradient(
+    180deg,
+    transparent 52%,
+    var(--color-sunshine) 52%,
+    var(--color-sunshine) 94%,
+    transparent 94%
+  );
+  padding: 0 0.14em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* ==========================================================================
+   Buttons — neo-brutalist sticker feel (2px border + hard offset shadow)
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
   font-family: var(--font-body);
   font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 0.72rem 1.15rem;
+  border: var(--bw) solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-sticker-md);
+  cursor: pointer;
+  transition:
+    transform var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease),
+    background-color var(--med) var(--ease),
+    color var(--med) var(--ease);
 }
 
-.brutal-button:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 7px 7px 0px 0px var(--color-ink);
+.btn:not([disabled]):hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-sticker-lg);
 }
 
-.brutal-button:active {
+.btn:not([disabled]):active {
   transform: translate(3px, 3px);
-  box-shadow: 2px 2px 0px 0px var(--color-ink);
+  box-shadow: none;
 }
 
-.brutal-button:focus-visible {
-  outline: 3px solid var(--color-accent-secondary);
-  outline-offset: 2px;
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
-.brutal-divider {
-  height: 4px;
+.btn-primary {
+  background: var(--color-red);
+  color: #fff;
+}
+.btn:not([disabled]).btn-primary:hover {
+  background: var(--color-red-deep);
+}
+
+.btn-accent {
+  background: var(--color-sunshine);
+}
+.btn:not([disabled]).btn-accent:hover {
+  background: var(--color-sunshine-soft);
+}
+
+/* outlined pill — fills sunshine on hover (navbar CTA) */
+.btn-outline {
+  background: transparent;
+}
+.btn:not([disabled]).btn-outline:hover {
+  background: var(--color-sunshine);
+}
+
+.btn-ink {
   background: var(--color-ink);
+  color: var(--color-paper);
+}
+.btn:not([disabled]).btn-ink:hover {
+  background: #333;
+}
+
+.btn-sm {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.68rem;
+  box-shadow: var(--shadow-sticker);
+}
+.btn:not([disabled]).btn-sm:hover {
+  box-shadow: var(--shadow-sticker-md);
+}
+
+.btn-block {
   width: 100%;
 }
 
-@keyframes slap-in {
-  0% {
-    transform: scale(0.8) rotate(-3deg);
+/* Square icon-only variant */
+.btn-icon {
+  padding: 0.55rem;
+  border-radius: 12px;
+}
+
+/* ==========================================================================
+   Surfaces — paper, index cards, notes
+   ========================================================================== */
+.card {
+  position: relative;
+  background: var(--color-paper);
+  border: var(--bw-thick) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sticker-lg);
+}
+
+/* Warm "sticky note" panel with hand-drawn wobbly edge */
+.note {
+  position: relative;
+  background: var(--color-paper-warm);
+  border: var(--bw) solid var(--color-ink);
+  border-radius: var(--radius-sketch);
+  box-shadow: var(--shadow-note);
+}
+
+.note-sm {
+  border-radius: var(--radius-sketch-sm);
+  padding: 0.5rem 0.9rem;
+}
+
+/* section heading chip */
+.section-heading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--color-paper);
+  border: var(--bw) solid var(--color-ink);
+  border-radius: 14px;
+  padding: 0.5rem 0.95rem;
+  box-shadow: var(--shadow-sticker-md);
+  transform: rotate(-1.6deg);
+}
+
+/* ==========================================================================
+   Washi tape
+   ========================================================================== */
+.tape {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  z-index: 2;
+  width: 94px;
+  height: 26px;
+  transform: translateX(-50%) rotate(-2.5deg);
+  background-color: var(--color-sunshine);
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.42) 0 5px,
+    rgba(255, 255, 255, 0) 5px 11px
+  );
+  border-left: 1px solid rgba(26, 26, 26, 0.16);
+  border-right: 1px solid rgba(26, 26, 26, 0.16);
+  box-shadow: 0 2px 5px rgba(26, 26, 26, 0.16);
+  clip-path: polygon(3% 0, 97% 0, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+
+.tape-wide {
+  width: 132px;
+}
+
+.tape-red {
+  background-color: var(--color-red);
+}
+
+.tape-blue {
+  background-color: var(--color-baby-blue-deep);
+}
+
+.tape-tilt-r {
+  transform: translateX(-50%) rotate(3deg);
+}
+
+/* ==========================================================================
+   Stickers & badges
+   ========================================================================== */
+.sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-hand);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.34rem 0.7rem;
+  border: var(--bw) solid var(--color-ink);
+  border-radius: 999px;
+  background: var(--color-sunshine);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-sticker);
+  white-space: nowrap;
+}
+
+.sticker-red {
+  background: var(--color-red);
+  color: #fff;
+}
+
+.sticker-paper {
+  background: var(--color-paper);
+}
+
+.sticker-sm {
+  font-size: 0.82rem;
+  padding: 0.26rem 0.55rem;
+}
+
+.sticker-wiggle:hover {
+  animation: wiggle 520ms var(--ease);
+}
+
+/* ==========================================================================
+   Polaroid birthday cards
+   ========================================================================== */
+.polaroid {
+  --tilt: 0deg;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px 0;
+  background: var(--color-paper);
+  border: var(--bw) solid var(--color-ink);
+  border-radius: 6px;
+  box-shadow: var(--shadow-photo);
+  transform: rotate(var(--tilt));
+  animation: pop-in 460ms var(--ease) backwards;
+  transition:
+    transform var(--slow) var(--ease),
+    box-shadow var(--slow) var(--ease),
+    border-color var(--med) var(--ease);
+}
+
+.polaroid:hover,
+.polaroid:focus-within {
+  transform: rotate(0deg) translateY(-7px) scale(1.015);
+  box-shadow: var(--shadow-photo-lift);
+  z-index: 5;
+}
+
+/* today's birthdays: sunshine halo + red frame */
+.polaroid.is-today {
+  border-color: var(--color-red);
+  box-shadow:
+    0 0 0 6px var(--color-sunshine),
+    var(--shadow-photo);
+}
+
+.polaroid-photo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  border: var(--bw) solid var(--color-ink);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.polaroid-caption {
+  margin: 10px -10px 0;
+  padding: 0.65rem 0.85rem 0.85rem;
+  border-top: 2px dashed rgba(26, 26, 26, 0.25);
+  background: var(--color-paper-warm);
+  border-radius: 0 0 4px 4px;
+}
+
+/* deterministic tilts so cards look scattered but never jitter on re-render */
+.tilt-a {
+  --tilt: -2.6deg;
+}
+.tilt-b {
+  --tilt: 1.9deg;
+}
+.tilt-c {
+  --tilt: -1.2deg;
+}
+.tilt-d {
+  --tilt: 2.8deg;
+}
+.tilt-e {
+  --tilt: -3deg;
+}
+.tilt-f {
+  --tilt: 1.1deg;
+}
+
+/* ==========================================================================
+   Calendar (index-card date picker)
+   ========================================================================== */
+.day-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  background: var(--color-paper-warm);
+  border: var(--bw) solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    transform var(--fast) var(--ease),
+    background-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+
+.day-cell:not(:disabled):hover {
+  background: var(--color-sunshine-soft);
+  transform: translateY(-2px);
+}
+
+.day-cell[data-empty="true"] {
+  visibility: hidden;
+}
+
+/* birthday indicator dot */
+.day-cell[data-birthday="true"]::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-ink);
+}
+
+.day-cell[data-birthday="true"] {
+  background: var(--color-sunshine);
+  border-color: var(--color-ink);
+}
+
+.day-cell[data-selected="true"] {
+  background: var(--color-red);
+  color: #fff;
+  border-color: var(--color-ink);
+  box-shadow: var(--shadow-sticker);
+  transform: rotate(-3deg) scale(1.05);
+}
+
+.day-cell[data-selected="true"][data-birthday="true"]::after {
+  background: var(--color-sunshine);
+}
+
+/* ==========================================================================
+   Upload drop zone
+   ========================================================================== */
+.dropzone {
+  position: relative;
+  background: var(--color-paper-warm);
+  border: var(--bw-thick) dashed var(--color-ink);
+  border-radius: var(--radius-sketch);
+  cursor: pointer;
+  transition:
+    background-color var(--med) var(--ease),
+    transform var(--med) var(--ease),
+    border-color var(--med) var(--ease);
+}
+
+.dropzone:hover {
+  background: var(--color-paper);
+}
+
+.dropzone.is-dragging {
+  background: var(--color-sunshine-soft);
+  transform: scale(1.01) rotate(-0.6deg);
+  border-style: solid;
+}
+
+.dropzone.is-loaded {
+  background: var(--color-paper);
+  border-style: solid;
+  border-color: var(--color-red);
+}
+
+/* ==========================================================================
+   Decorative doodles & rules
+   ========================================================================== */
+.doodle {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+}
+
+.doodle-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+.doodle-twinkle {
+  animation: twinkle 3.4s ease-in-out infinite;
+}
+
+.rule-dashed {
+  height: 0;
+  border: 0;
+  border-top: 2.5px dashed rgba(26, 26, 26, 0.42);
+}
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+@keyframes pop-in {
+  from {
     opacity: 0;
+    transform: rotate(calc(var(--tilt, 0deg) - 5deg)) scale(0.9);
   }
-  60% {
-    transform: scale(1.02) rotate(0.5deg);
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
+  to {
     opacity: 1;
+    transform: rotate(var(--tilt, 0deg)) scale(1);
   }
 }
 
-.animate-slap {
-  animation: slap-in 0.3s ease-out forwards;
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(-1.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-5deg);
+  }
+  75% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.9) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12) rotate(12deg);
+  }
+}
+
+.animate-rise {
+  animation: rise-in 420ms var(--ease) backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brutal-button {
-    transition: none;
+  html {
+    scroll-behavior: auto;
   }
-  .animate-slap {
-    animation: none;
-    opacity: 1;
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .doodle-float,
+  .doodle-twinkle,
+  .sticker-wiggle:hover {
+    animation: none !important;
+  }
+
+  .day-cell[data-selected="true"] {
+    transform: none;
+  }
+
+  .polaroid:hover,
+  .polaroid:focus-within {
+    transform: rotate(var(--tilt, 0deg)) translateY(-4px);
   }
 }
 
+/* ==========================================================================
+   Nav
+   ========================================================================== */
+.nav-link {
+  position: relative;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  padding-bottom: 0.25rem;
+  border-bottom: 2px solid transparent;
+  transition:
+    color var(--med) var(--ease),
+    border-color var(--med) var(--ease);
+}
+
+.nav-link:hover {
+  color: var(--color-red);
+  border-bottom-color: var(--color-red);
+}
+
+/* ==========================================================================
+   Focus (kept last so it wins over the component styles above)
+   Dark ring + sunshine halo — readable on paper, tape and baby blue alike.
+   ========================================================================== */
+:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px var(--color-sunshine);
+}
+
+/* keep the nav comfortable on small phones */
+@media (max-width: 400px) {
+  .nav-cta {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+  }
+}
