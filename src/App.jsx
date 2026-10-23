@@ -1,23 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import FileUpload from './components/FileUpload';
 import DatePicker from './components/DatePicker';
 import ContactList from './components/ContactList';
-import { Bell, BellOff, BellRing, Check, X } from 'lucide-react';
-import {
-  Balloon,
-  CakeDoodle,
-  Confetti,
-  CurvyArrow,
-  DashedPath,
-  Heart,
-  PaperPlane,
-  Sparkle,
-  SquiggleUnderline,
-  Sun,
-  Swirl,
-} from './components/Doodles';
+import { getTurnInfo } from './utils/birthdays';
+import { Bell, BellOff, BellRing, Check, Plus, Sparkle, X } from 'lucide-react';
+import { BalloonCluster, CakeDoodle, CakeSliceArt, SquiggleArt, StarArt } from './components/Doodles';
 import {
   scheduleAllBirthdayNotifications,
   cancelAllNotifications,
@@ -30,36 +18,212 @@ import {
 
 const HOW_TO_STEPS = [
   'Prepare an Excel file with columns named "Name" and "BirthDate"',
-  'Upload your file using the drag-and-drop zone above',
+  'Upload your file using the drop zone above',
   'Select a date from the calendar to view birthdays',
   'Enable birthday reminders to get notified 1 day before each birthday',
 ];
 
-const STEP_TINTS = ['bg-sunshine', 'bg-baby-blue-soft', 'bg-sunshine-soft', 'bg-paper-shade'];
+const CONFETTI_COLORS = [
+  'var(--pink)',
+  'var(--yellow)',
+  'var(--green)',
+  'var(--grape)',
+  'var(--cream)',
+  'var(--red)',
+];
+
+/* 12–16 point star for the age badge. */
+const starPoints = (points = 16, outer = 48, inner = 37) =>
+  Array.from({ length: points * 2 }, (_, i) => {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = (Math.PI / points) * i - Math.PI / 2;
+    return `${(50 + radius * Math.cos(angle)).toFixed(2)},${(50 + radius * Math.sin(angle)).toFixed(2)}`;
+  }).join(' ');
+
+/* Deterministic scatter so re-renders never reshuffle the confetti mid-burst. */
+const seeded = (index, salt) => {
+  const value = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+const whenLabel = ({ daysLeft, isToday }) =>
+  isToday ? 'today' : daysLeft === 1 ? 'tomorrow' : `in ${daysLeft} days`;
+
+function Marquee({ items }) {
+  if (items.length === 0) {
+    return (
+      <div className="marquee">
+        <p className="marquee__static">No birthdays this week</p>
+      </div>
+    );
+  }
+
+  const group = (copy) => (
+    <span className="marquee__group">
+      {items.map((item, index) => (
+        <span className="marquee__item" key={`${copy}-${index}`}>
+          <span>{item.name}</span>
+          <span className="marquee__when">{whenLabel(item)}</span>
+          <span className="marquee__star" aria-hidden="true">
+            ✦
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+
+  return (
+    <div className="marquee">
+      <div className="marquee__track" aria-hidden="true">
+        {group('a')}
+        {group('b')}
+      </div>
+      <p className="sr-only">
+        Birthdays this week: {items.map((item) => `${item.name}, ${whenLabel(item)}`).join('; ')}.
+      </p>
+    </div>
+  );
+}
+
+function NextUpPoster({ next, todayCount }) {
+  const tone = next.isToday || next.daysLeft <= 7 ? 'soon' : 'later';
+  const dateLabel = next.next.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  return (
+    <section
+      className={`hero hero--${next.isToday ? 'today' : tone}`}
+      aria-labelledby="next-up-name"
+    >
+      <div className="hero__strip" aria-hidden="true" />
+
+      {next.age !== null && (
+        <div className="hero__badge">
+          <span
+            className="starburst"
+            role="img"
+            aria-label={`Turns ${next.age} on their next birthday`}
+          >
+            <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+              <polygon points={starPoints(16, 48, 37)} />
+            </svg>
+            <span className="starburst__num" aria-hidden="true">
+              {next.age}
+            </span>
+          </span>
+          <span className="marker-note" aria-hidden="true">
+            turns {next.age}!
+          </span>
+        </div>
+      )}
+
+      <div className="hero__inner">
+        <BalloonCluster className="hero__art" />
+
+        <div className="hero__copy">
+          <p className="hero__kicker">Next up</p>
+          <h2 className="hero__name" id="next-up-name">
+            {next.name}
+          </h2>
+
+          {next.isToday ? (
+            <p className="hero__countdown">Today!</p>
+          ) : (
+            <p className="hero__countdown">
+              <span className="hero__numeral">{next.daysLeft}</span>
+              <span className="hero__unit">{next.daysLeft === 1 ? 'day' : 'days'}</span>
+            </p>
+          )}
+
+          <p className="hero__date">{dateLabel}</p>
+
+          {next.isToday && todayCount > 1 && (
+            <p className="hero__more">{todayCount} birthdays today</p>
+          )}
+
+          <a href="#calendar" className="btn btn--primary">
+            Pick a date
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const readInitialBirthdays = () => {
+  const saved = loadContactsFromStorage() || [];
+  const today = new Date();
+
+  return {
+    contacts: saved,
+    selectedDate: saved.length > 0 ? today : null,
+    filteredContacts:
+      saved.length > 0
+        ? saved.filter(
+            (contact) =>
+              contact.birthDate.getMonth() === today.getMonth() &&
+              contact.birthDate.getDate() === today.getDate()
+          )
+        : [],
+  };
+};
 
 function App() {
-  const [contacts, setContacts] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [filteredContacts, setFilteredContacts] = useState([]);
+  const [initialData] = useState(readInitialBirthdays);
+  const [contacts, setContacts] = useState(initialData.contacts);
+  const [selectedDate, setSelectedDate] = useState(initialData.selectedDate);
+  const [filteredContacts, setFilteredContacts] = useState(initialData.filteredContacts);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState(null);
   const [showNotificationBanner, setShowNotificationBanner] = useState(false);
   const [parseError, setParseError] = useState(null);
+  const [confettiOn, setConfettiOn] = useState(false);
   const datePickerRef = useRef(null);
+  const driftRef = useRef(null);
+
+  const turned = useMemo(
+    () => contacts.map((contact) => ({ ...contact, ...getTurnInfo(contact.birthDate) })),
+    [contacts]
+  );
+
+  const nextUp = useMemo(
+    () =>
+      turned.reduce(
+        (best, person) => (!best || person.daysLeft < best.daysLeft ? person : best),
+        null
+      ),
+    [turned]
+  );
+
+  const todayCount = useMemo(() => turned.filter((person) => person.isToday).length, [turned]);
+  const hasToday = todayCount > 0;
+
+  const weekItems = useMemo(
+    () =>
+      turned
+        .filter((person) => person.daysLeft <= 7)
+        .sort((a, b) => a.daysLeft - b.daysLeft)
+        .slice(0, 12),
+    [turned]
+  );
+
+  const confettiPieces = useMemo(
+    () =>
+      Array.from({ length: 60 }, (_, index) => ({
+        left: `${(seeded(index, 1) * 100).toFixed(2)}%`,
+        drift: `${Math.round((seeded(index, 2) - 0.5) * 260)}px`,
+        spin: `${Math.round(200 + seeded(index, 3) * 520)}deg`,
+        fall: `${(0.9 + seeded(index, 4) * 0.6).toFixed(2)}s`,
+        color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+        round: index % 3 === 0,
+      })),
+    []
+  );
 
   useEffect(() => {
-    const saved = loadContactsFromStorage();
-    if (saved && saved.length > 0) {
-      setContacts(saved);
-      const today = new Date();
-      setSelectedDate(today);
-      const todayBirthdays = saved.filter(contact =>
-        contact.birthDate.getMonth() === today.getMonth() &&
-        contact.birthDate.getDate() === today.getDate()
-      );
-      setFilteredContacts(todayBirthdays);
-    }
-
     if (isNative()) {
       checkNotificationPermission().then(granted => {
         setNotificationsEnabled(granted);
@@ -74,6 +238,38 @@ function App() {
       }, 300);
     }
   }, [contacts]);
+
+  useEffect(() => {
+    if (!hasToday) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const start = setTimeout(() => setConfettiOn(true), 0);
+    const stop = setTimeout(() => setConfettiOn(false), 1900);
+    return () => {
+      clearTimeout(start);
+      clearTimeout(stop);
+    };
+  }, [hasToday]);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const offset = Math.min(window.scrollY * 0.06, 24);
+        driftRef.current?.style.setProperty('--parallax', `${offset}px`);
+      });
+    };
+
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const parseDate = (dateValue) => {
     if (!dateValue) return null;
@@ -90,7 +286,7 @@ function App() {
 
     if (typeof dateValue === 'string') {
       const trimmed = dateValue.trim();
-      const ddmmyyyyPattern = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/;
+      const ddmmyyyyPattern = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/;
       const match = trimmed.match(ddmmyyyyPattern);
 
       if (match) {
@@ -253,289 +449,267 @@ function App() {
     setFilteredContacts(filtered);
   };
 
+  const notificationDenied = notificationStatus?.permissionDenied;
+
   return (
-    <div className="min-h-screen pb-24">
-      {/* ---------------------------------------------------------------- nav */}
-      <header className="sticky top-0 z-40 border-b-2 border-dashed border-ink/30 bg-paper">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
-          <a href="#top" className="group flex shrink-0 items-center gap-2">
-            <CakeDoodle className="h-7 w-7 text-red transition-transform duration-200 group-hover:-rotate-12" />
-            <span className="font-brush text-xl leading-none text-ink sm:text-2xl">
-              Birthday<span className="text-red">Tracker</span>
-            </span>
-          </a>
-
-          <nav aria-label="Page sections" className="hidden items-center gap-6 md:flex">
-            <a className="nav-link" href="#upload">Upload</a>
-            {contacts.length > 0 && (
-              <>
-                <a className="nav-link" href="#calendar">Calendar</a>
-                <a className="nav-link" href="#birthdays">Birthdays</a>
-              </>
-            )}
-          </nav>
-
-          <a href="#upload" className="btn btn-outline btn-sm nav-cta">
-            Add Birthdays <span aria-hidden="true">+</span>
-          </a>
+    <>
+      {confettiOn && (
+        <div className="confetti" aria-hidden="true">
+          {confettiPieces.map((piece, index) => (
+            <span
+              key={index}
+              className={`confetti__piece${piece.round ? ' confetti__piece--round' : ''}`}
+              style={{
+                left: piece.left,
+                background: piece.color,
+                '--drift': piece.drift,
+                '--spin': piece.spin,
+                '--fall': piece.fall,
+              }}
+            />
+          ))}
         </div>
-      </header>
+      )}
 
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* ------------------------------------------------------------- hero */}
-        <section id="top" className="relative pt-10 pb-6 sm:pt-14">
-          <Confetti className="doodle doodle-twinkle left-0 top-4 hidden h-16 w-16 text-red sm:block lg:h-20 lg:w-20" />
-          <Sun className="doodle doodle-float right-1 top-0 h-14 w-14 text-sunshine drop-shadow-[1px_2px_0_rgba(26,26,26,0.35)] sm:right-6 sm:h-20 sm:w-20" />
-          <Sparkle className="doodle doodle-twinkle right-24 top-24 hidden h-6 w-6 text-red lg:block" />
-          <Sparkle className="doodle left-10 bottom-6 hidden h-5 w-5 text-ink/40 lg:block" />
-          <Swirl className="doodle hidden h-12 w-12 text-ink/30 md:block" style={{ left: '18%', top: '6%' }} />
-
-          <div className="relative z-10 mx-auto max-w-3xl text-center">
-            <p className="eyebrow">— your scrapbook of big days —</p>
-
-            <h1 className="marker-title mt-3 text-[2.1rem] sm:text-5xl md:text-6xl lg:text-7xl">
-              Never Miss a Big Day.
-            </h1>
-
-            <SquiggleUnderline className="mx-auto mt-2 h-4 w-[64%] max-w-md text-red" />
-
-            <p className="hand-note mt-4 text-2xl sm:text-3xl">
-              good cake. good people. happy vibes <span className="text-red">♡</span>
-            </p>
-
-            <p className="mx-auto mt-3 max-w-md text-sm text-ink/85 sm:text-base">
-              Stick your list on the page and every candle gets remembered — pinned to the
-              calendar, ready to celebrate.
-            </p>
+      <div className="app-shell" id="top">
+        <div className="backdrop" aria-hidden="true">
+          <div className="backdrop__drift" ref={driftRef}>
+            <BalloonCluster className="bg-shape bg-shape--balloons" />
+            <StarArt className="bg-shape bg-shape--star" />
+            <CakeSliceArt className="bg-shape bg-shape--cake" />
+            <SquiggleArt className="bg-shape bg-shape--squiggle" />
+            <span className="bg-shape bg-shape--dot bg-shape--dot-a" />
+            <span className="bg-shape bg-shape--dot bg-shape--dot-b" />
+            <span className="bg-shape bg-shape--dot bg-shape--dot-c" />
           </div>
+        </div>
 
-          <CurvyArrow className="doodle hidden h-16 w-16 text-ink/45 lg:block" style={{ right: '12%', bottom: '-1rem' }} />
-        </section>
+        <Marquee items={weekItems} />
 
-        <hr className="rule-dashed my-6" />
+        <header className="site-header">
+          <div className="header-inner">
+            <a href="#top" className="brand">
+              <span className="brand__sticker">
+                <CakeDoodle className="h-7 w-7" />
+              </span>
+              <span className="brand__slab">Birthday Tracker</span>
+            </a>
 
-        {/* ------------------------------------------------------- alerts */}
-        <AnimatePresence>
-          {showNotificationBanner && notificationStatus && (
-            <div className="animate-rise mb-6">
-              <div
-                role="status"
-                className={`note relative flex items-start justify-between gap-3 px-4 py-4 pr-3 sm:px-6 ${
-                  notificationStatus.permissionDenied ? 'bg-paper-shade' : 'bg-sunshine-soft'
-                }`}
-              >
-                <span className="tape tape-red" aria-hidden="true" />
+            <nav aria-label="Page sections" className="nav">
+              <a className="nav-pill" href="#upload">
+                Upload
+              </a>
+              {contacts.length > 0 && (
+                <>
+                  <a className="nav-pill" href="#calendar">
+                    Calendar
+                  </a>
+                  <a className="nav-pill" href="#birthdays">
+                    Birthdays
+                  </a>
+                </>
+              )}
+            </nav>
 
-                <div className="flex items-start gap-3">
-                  <span
-                    className={`mt-0.5 flex h-8 w-8 shrink-0 rotate-[-6deg] items-center justify-center rounded-lg border-2 border-ink ${
-                      notificationStatus.permissionDenied ? 'bg-red' : 'bg-sunshine'
-                    }`}
-                  >
-                    {notificationStatus.permissionDenied ? (
-                      <BellOff className={`h-4 w-4 ${notificationStatus.permissionDenied ? 'text-white' : 'text-ink'}`} aria-hidden="true" />
-                    ) : (
-                      <Check className="h-4 w-4 text-ink" aria-hidden="true" />
-                    )}
-                  </span>
-                  <p className="text-sm font-medium leading-snug text-ink">
-                    {notificationStatus.permissionDenied
-                      ? 'Notification permission denied. Please enable it in your device settings.'
-                      : `${notificationStatus.scheduled} reminder${notificationStatus.scheduled !== 1 ? 's' : ''} scheduled! You'll be notified 1 day before each birthday at 9:00 AM.`
-                    }
-                  </p>
-                </div>
+            <a href="#upload" className="btn btn--primary btn--sm" aria-label="Add birthdays">
+              <span className="hidden sm:inline">Add birthdays</span>
+              <Plus className="h-5 w-5 sm:hidden" aria-hidden="true" />
+            </a>
+          </div>
+        </header>
 
-                <button
-                  type="button"
-                  aria-label="Dismiss notification message"
-                  onClick={() => setShowNotificationBanner(false)}
-                  className="btn btn-sm btn-icon"
-                >
-                  <X className="h-3.5 w-3.5" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
+        <main className="page">
+          <h1 className="sr-only">Birthday Tracker</h1>
+
+          {nextUp ? (
+            <NextUpPoster next={nextUp} todayCount={todayCount} />
+          ) : (
+            <section className="intro">
+              <h2 className="intro__title">Never Miss a Big Day.</h2>
+              <div className="intro__underline" aria-hidden="true" />
+              <p className="intro__text">
+                Add a spreadsheet of names and birthdays, and every one lands on the
+                calendar, ready to celebrate.
+              </p>
+            </section>
           )}
-        </AnimatePresence>
 
-        {parseError && (
-          <div className="animate-rise mb-6">
-            <div role="alert" className="note relative flex items-start justify-between gap-3 border-red bg-paper px-4 py-4 sm:px-6">
-              <span className="tape tape-red tape-tilt-r" aria-hidden="true" />
-
-              <div className="flex items-start gap-3">
-                <span className="font-marker mt-0.5 flex h-8 w-8 shrink-0 rotate-[-6deg] items-center justify-center rounded-lg border-2 border-ink bg-red text-lg leading-none text-white">
-                  !
-                </span>
-                <p className="text-sm font-medium leading-snug text-ink">{parseError}</p>
-              </div>
-
+          {parseError && (
+            <div className="alert" role="alert">
+              <span className="alert__icon" aria-hidden="true">
+                !
+              </span>
+              <p className="alert__text">{parseError}</p>
               <button
                 type="button"
                 aria-label="Dismiss error message"
                 onClick={() => setParseError(null)}
-                className="btn btn-sm btn-icon"
+                className="btn btn--icon btn--sm"
               >
-                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ------------------------------------------------------- upload */}
-        <section id="upload" className="relative pt-2">
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
-            <span className="section-heading">
-              <PaperPlane className="h-5 w-5 text-red" />
-              <span className="label-serif text-[0.62rem] text-ink">step one · your list</span>
-            </span>
-            {contacts.length === 0 ? (
-              <span className="sticker rotate-[3deg]">start here</span>
-            ) : (
-              <span className="sticker sticker-paper">
-                {contacts.length} {contacts.length === 1 ? 'birthday' : 'birthdays'} saved
-              </span>
-            )}
-          </div>
+          <section id="upload" className="section">
+            <div className="section-head">
+              <h2 className="section-title">Your birthday list</h2>
+              {contacts.length > 0 ? (
+                <span className="chip chip--yellow">
+                  {contacts.length} {contacts.length === 1 ? 'birthday' : 'birthdays'} saved
+                </span>
+              ) : (
+                <span className="chip chip--pink">Start here</span>
+              )}
+            </div>
 
-          <FileUpload onFileUpload={handleFileUpload} />
-        </section>
+            <FileUpload onFileUpload={handleFileUpload} />
+          </section>
 
-        {contacts.length > 0 && (
-          <>
-            <DashedPath className="mt-10 h-9 w-full text-ink/35" />
+          {contacts.length > 0 && (
+            <>
+              <section id="reminders" className="section" aria-label="Birthday reminders">
+                <div className="plate">
+                  <div className="plate__band" aria-hidden="true" />
+                  <div className="plate__body">
+                    <div className="reminder__row">
+                      <div className="reminder__identity">
+                        <span className={`reminder__icon${notificationsEnabled ? ' is-on' : ''}`}>
+                          {notificationsEnabled ? (
+                            <BellRing className="h-7 w-7" aria-hidden="true" />
+                          ) : (
+                            <Bell className="h-6 w-6" aria-hidden="true" />
+                          )}
+                        </span>
 
-            {/* ------------------------------------------------- reminders */}
-            <section id="reminders" aria-label="Birthday reminders" className="mt-6 mb-10">
-              <div className="animate-rise relative">
-                <span className="tape tape-wide tape-blue" aria-hidden="true" />
+                        <div className="min-w-0">
+                          <h2 className="reminder__title">Birthday reminders</h2>
+                          <p className="reminder__text">
+                            {notificationsEnabled
+                              ? 'You will receive notifications 1 day before each birthday'
+                              : 'Get notified 1 day before upcoming birthdays'}
+                          </p>
+                        </div>
+                      </div>
 
-                <div className="card px-5 py-6 sm:px-7 sm:py-7">
-                  <div className="flex flex-wrap items-center justify-between gap-5">
-                    <div className="flex items-center gap-4">
-                      <span
-                        className={`flex h-14 w-14 shrink-0 rotate-[-6deg] items-center justify-center rounded-2xl border-2 border-ink ${
-                          notificationsEnabled ? 'bg-red' : 'bg-sunshine'
-                        }`}
+                      <button
+                        type="button"
+                        onClick={notificationsEnabled ? handleDisableNotifications : handleEnableNotifications}
+                        disabled={!isNative()}
+                        aria-pressed={notificationsEnabled}
+                        className={`btn${notificationsEnabled ? '' : ' btn--primary'}`}
                       >
-                        {notificationsEnabled ? (
-                          <BellRing className="h-7 w-7 text-white" aria-hidden="true" />
-                        ) : (
-                          <Bell className="h-7 w-7 text-ink" aria-hidden="true" />
-                        )}
-                      </span>
+                        {notificationsEnabled ? 'Disable reminders' : 'Enable reminders'}
+                      </button>
+                    </div>
 
-                      <div className="min-w-0">
-                        <h2 className="font-brush text-2xl text-ink">Birthday reminders</h2>
-                        <p className="mt-0.5 text-xs text-ink/75">
-                          {notificationsEnabled
-                            ? 'You will receive notifications 1 day before each birthday'
-                            : 'Get notified 1 day before upcoming birthdays'
-                          }
+                    {!isNative() && (
+                      <div className="reminder__note">
+                        <Sparkle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        <p className="m-0">
+                          Reminders are not available in the web version yet. The mobile app
+                          notifies you a day before each birthday.
                         </p>
                       </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={notificationsEnabled ? handleDisableNotifications : handleEnableNotifications}
-                      disabled={!isNative()}
-                      aria-pressed={notificationsEnabled}
-                      className={`btn ${notificationsEnabled ? 'bg-paper' : 'btn-primary'}`}
-                    >
-                      {notificationsEnabled ? 'Disable' : 'Enable reminders'}
-                    </button>
+                    )}
                   </div>
-
-                  {!isNative() && (
-                    <div className="mt-5 flex items-start gap-3 rounded-2xl border-2 border-dashed border-ink/40 bg-paper-warm px-4 py-3">
-                      <Sparkle className="mt-0.5 h-4 w-4 shrink-0 text-red" />
-                      <p className="text-xs text-ink/85">
-                        Reminders are not yet available in the web version — mobile app support
-                        is coming soon.
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </div>
-            </section>
+              </section>
 
-            <hr className="rule-dashed mb-10" />
-
-            {/* ---------------------------------------------------- calendar */}
-            <section id="calendar" className="mb-10">
-              <div className="mb-5 flex flex-wrap items-center gap-3">
-                <span className="section-heading">
-                  <CakeDoodle className="h-6 w-6 text-red" />
-                  <span className="label-serif text-[0.62rem] text-ink">step two · pick a day</span>
-                </span>
-                <span className="font-hand text-xl font-bold text-ink/80">
-                  tap a yellow square — that day is someone&apos;s birthday
-                </span>
-              </div>
-
-              <div ref={datePickerRef}>
-                <DatePicker
-                  onDateSelect={handleDateSelect}
-                  selectedDate={selectedDate}
-                  contacts={contacts}
-                />
-              </div>
-            </section>
-
-            {/* --------------------------------------------------- birthdays */}
-            <section id="birthdays" aria-label="Birthdays on the selected date">
-              <ContactList
-                contacts={filteredContacts}
-                selectedDate={selectedDate}
-              />
-            </section>
-          </>
-        )}
-
-        {/* ------------------------------------------------------- how-to */}
-        {contacts.length === 0 && (
-          <section className="relative mt-10">
-            <div className="animate-rise note relative px-5 py-9 sm:px-10 sm:py-11">
-              <span className="tape tape-wide tape-red" aria-hidden="true" />
-
-              <Sparkle className="doodle doodle-twinkle right-6 top-8 h-5 w-5 text-red" />
-              <Sparkle className="doodle doodle-twinkle left-6 bottom-8 h-4 w-4 text-ink/35" />
-
-              <div className="mb-7 text-center">
-                <div className="relative mx-auto w-24">
-                  <Balloon className="doodle-float mx-auto h-20 w-20 text-baby-blue-deep" />
-                  <Heart className="doodle -right-2 bottom-1 h-8 w-8 text-red" />
-                  <Confetti className="doodle -left-4 top-0 h-9 w-9 text-ink/45" />
+              <section id="calendar" className="section">
+                <div className="section-head">
+                  <h2 className="section-title">Pick a day</h2>
+                  <span className="chip">Days with a dot have birthdays</span>
                 </div>
 
-                <h2 className="font-marker mt-4 rotate-[-2deg] text-2xl text-red sm:text-3xl">
-                  Nothing pinned here yet!
-                </h2>
-                <p className="font-hand mt-2 text-2xl font-bold text-ink">
-                  three little steps and you&apos;re good to go ♡
+                <div ref={datePickerRef}>
+                  <DatePicker
+                    onDateSelect={handleDateSelect}
+                    selectedDate={selectedDate}
+                    contacts={contacts}
+                  />
+                </div>
+              </section>
+
+              <section
+                id="birthdays"
+                className="section"
+                aria-label="Birthdays on the selected date"
+              >
+                <ContactList contacts={filteredContacts} selectedDate={selectedDate} />
+              </section>
+            </>
+          )}
+
+          {contacts.length === 0 && (
+            <section className="section" aria-label="Getting started">
+              <div className="empty">
+                <CakeSliceArt className="empty__art" />
+                <h2 className="empty__title">No birthdays yet</h2>
+                <p className="empty__text">
+                  Add the first one with a spreadsheet of names and dates.
                 </p>
+                <a href="#upload" className="btn btn--primary">
+                  Add birthday
+                </a>
               </div>
 
-              <ol className="mx-auto grid max-w-2xl gap-4">
-                {HOW_TO_STEPS.map((step, index) => (
-                  <li key={step} className="flex items-start gap-4">
-                    <span
-                      className={`font-marker flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-ink text-lg leading-none shadow-sticker ${STEP_TINTS[index % STEP_TINTS.length]}`}
-                      aria-hidden="true"
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="pt-1 text-sm text-ink sm:text-base">{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </section>
-        )}
-      </main>
-    </div>
+              <div className="plate mt-8">
+                <div className="plate__band" aria-hidden="true" />
+                <div className="plate__body">
+                  <h3 className="section-title">How it works</h3>
+                  <ol className="steps">
+                    {HOW_TO_STEPS.map((step, index) => (
+                      <li key={step} className="step">
+                        <span className="step__num" aria-hidden="true">
+                          {index + 1}
+                        </span>
+                        <span className="step__text">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </section>
+          )}
+        </main>
+
+        <footer className="site-footer">
+          <div className="site-footer__band" aria-hidden="true" />
+          <div className="site-footer__inner">
+            <span className="site-footer__brand">Birthday Tracker</span>
+            <p className="site-footer__text">
+              Upload a list, pick a day, celebrate. Your list stays on this device.
+            </p>
+          </div>
+        </footer>
+      </div>
+
+      {showNotificationBanner && notificationStatus && (
+        <div className={`toast ${notificationDenied ? 'toast--error' : 'toast--success'}`} role="status">
+          <span className="toast__icon">
+            {notificationDenied ? (
+              <BellOff className="h-5 w-5" aria-hidden="true" />
+            ) : (
+              <Check className="h-5 w-5" aria-hidden="true" />
+            )}
+          </span>
+          <p className="toast__text">
+            {notificationDenied
+              ? 'Notification permission denied. Turn it on in your device settings to get birthday reminders.'
+              : `${notificationStatus.scheduled} reminder${notificationStatus.scheduled !== 1 ? 's' : ''} scheduled. You'll be notified a day before each birthday at 9:00 AM.`}
+          </p>
+          <button
+            type="button"
+            aria-label="Dismiss notification message"
+            onClick={() => setShowNotificationBanner(false)}
+            className="toast__close"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 

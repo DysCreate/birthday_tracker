@@ -142,3 +142,90 @@ export function PaperPlane(props) {
     </Doodle>
   );
 }
+
+/* ==========================================================================
+   Party ephemera — flat shapes with a single ink outline.
+   Fill classes live in index.css (.art-pink, .art-yellow, ...).
+   ========================================================================== */
+
+/* Two balloons with strings. Used in the hero poster and empty states. */
+export function BalloonCluster({ className = '', ...rest }) {
+  return (
+    <svg
+      viewBox="0 0 240 290"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      {...rest}
+    >
+      <path
+        className="art-shape art-pink"
+        d="M72 14c28 0 48 22 48 49 0 31-26 58-48 74-22-16-48-43-48-74 0-27 20-49 48-49z"
+      />
+      <path className="art-shape art-red" d="M72 137l-9 15h18z" />
+      <path className="art-line" d="M72 152c9 18-9 28 0 46" />
+      <path
+        className="art-shape art-yellow"
+        d="M178 82c21 0 36 16 36 36 0 23-19 42-36 54-17-12-36-31-36-54 0-20 15-36 36-36z"
+      />
+      <path className="art-shape art-orange" d="M178 172l-7 12h14z" />
+      <path className="art-line" d="M178 184c7 14-7 22 0 36" />
+      <path className="art-line" d="M166 8l4 12M192 4l2 13M210 26l12 2" />
+    </svg>
+  );
+}
+
+/* Filled five-point star for the backdrop. */
+export function StarArt({ className = '', ...rest }) {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      {...rest}
+    >
+      <path
+        className="art-shape art-yellow"
+        d="M50 4 61 36 96 36 68 56 78 90 50 70 22 90 32 56 4 36 39 36Z"
+      />
+    </svg>
+  );
+}
+
+/* Cake slice, frosting side out. */
+export function CakeSliceArt({ className = '', ...rest }) {
+  return (
+    <svg
+      viewBox="0 0 120 120"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      {...rest}
+    >
+      <path className="art-shape art-cream" d="M10 104 68 18 102 104Z" />
+      <path className="art-shape art-pink" d="M68 18 102 104 82 104Z" />
+      <circle className="art-shape art-red" cx="68" cy="14" r="9" />
+      <path className="art-line" d="M34 88h20M43 71h13" />
+    </svg>
+  );
+}
+
+/* Loose squiggle of frosting. */
+export function SquiggleArt({ className = '', ...rest }) {
+  return (
+    <svg
+      viewBox="0 0 220 60"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      {...rest}
+    >
+      <path
+        className="art-line"
+        style={{ stroke: 'var(--grape)', strokeWidth: 10 }}
+        d="M8 42c16-34 34 34 50 0s34 34 50 0 34 34 50 0"
+      />
+    </svg>
+  );
+}
