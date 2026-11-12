@@ -496,9 +496,6 @@ function App() {
             </a>
 
             <nav aria-label="Page sections" className="nav">
-              <a className="nav-pill" href="#upload">
-                Upload
-              </a>
               {contacts.length > 0 && (
                 <>
                   <a className="nav-pill" href="#calendar">
